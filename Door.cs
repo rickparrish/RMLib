@@ -25,15 +25,22 @@ using System.Globalization;
 
 namespace RandM.RMLib
 {
+    /// <summary>
+    /// Please note that the Door class is not thread safe.  If:
+    ///   1) Anybody every uses this class, and
+    ///   2) A use-case for a thread safe Door class is presented
+    /// then I'll be happy to add the required locking to make it thread safe.
+    /// </summary>
     static public class Door
     {
-        static TcpConnection FConnection;
-        public const string FVersion = "R&M Door v10.09.07";
+        public const string _Version = "R&M Door v13.02.19";
 
         static public TDropInfo DropInfo = new TDropInfo();
         static public TLastKey LastKey = new TLastKey();
         static public TMOREPrompts MOREPrompts = new TMOREPrompts();
         static public TSession Session = new TSession();
+
+        static private TcpConnection _Connection;
 
         #region Standard R&M Door functions
 
@@ -75,7 +82,7 @@ namespace RandM.RMLib
         /// <returns>True if local or carrier exists, false if no carrier exists</returns>
         static public bool Carrier
         {
-            get { return (Local() || FConnection.Connected); }
+            get { return (Local() || _Connection.Connected); }
         }
 
         /// <summary>
@@ -87,7 +94,7 @@ namespace RandM.RMLib
                 Crt.ReadKey();
 
             if (!Local())
-                FConnection.ReadString();
+                _Connection.ReadString();
         }
 
         /// <summary>
@@ -97,8 +104,8 @@ namespace RandM.RMLib
         {
             if (!Local())
             {
-                FConnection.ShutdownOnClose = true;
-                FConnection.Close();
+                _Connection.ShutdownOnClose = true;
+                _Connection.Close();
             }
 
             DropInfo.SocketHandle = -1;
@@ -477,7 +484,7 @@ namespace RandM.RMLib
             }
             else
             {
-                return (Crt.KeyPressed() || FConnection.CanRead());
+                return (Crt.KeyPressed() || _Connection.CanRead());
             }
         }
 
@@ -526,15 +533,15 @@ namespace RandM.RMLib
             {
                 switch (DropInfo.ComType)
                 {
-                    case 2: FConnection = new TelnetConnection(); break;
-                    case 3: FConnection = new RLoginConnection(); break;
-                    case 4: FConnection = new WebSocketConnection(false); break;
+                    case 2: _Connection = new TelnetConnection(); break;
+                    case 3: _Connection = new RLoginConnection(); break;
+                    case 4: _Connection = new WebSocketConnection(false); break;
                 }
-                FConnection.Open(DropInfo.SocketHandle);
-                FConnection.ShutdownOnClose = false;
-                FConnection.StripLF = true;
+                _Connection.Open(DropInfo.SocketHandle);
+                _Connection.ShutdownOnClose = false;
+                _Connection.StripLF = true;
 
-                return FConnection.Connected;
+                return _Connection.Connected;
             }
         }
 
@@ -584,9 +591,9 @@ namespace RandM.RMLib
                         LastKey.Location = DoorKeyLocation.Local;
                     }
                 }
-                else if ((!Local()) && (FConnection.CanRead()))
+                else if ((!Local()) && (_Connection.CanRead()))
                 {
-                    Ch = FConnection.ReadChar(0);
+                    Ch = _Connection.ReadChar(0);
                     LastKey.Extended = false;
                     LastKey.Location = DoorKeyLocation.Remote;
                 }
@@ -608,7 +615,7 @@ namespace RandM.RMLib
 
         static public void Shutdown()
         {
-            if (!Local()) FConnection.Close();
+            if (!Local()) _Connection.Close();
         }
 
         static public void Startup(string[] args)
@@ -798,7 +805,7 @@ namespace RandM.RMLib
             if (text.Contains("|")) text = PipeToAnsi(text);
 
             Ansi.Write(text);
-            if (!Local()) FConnection.Write(text);
+            if (!Local()) _Connection.Write(text);
         }
 
         /// <summary>
@@ -908,7 +915,7 @@ namespace RandM.RMLib
         {
             Crt.FastWrite("þ                           þ                   þ             þ                þ", 1, 25, 30);
             Crt.FastWrite((DropInfo.RealName + new string(' ', 22)).Substring(0, 22), 3, 25, 31);
-            Crt.FastWrite(FVersion, 31, 25, 31);
+            Crt.FastWrite(_Version, 31, 25, 31);
             Crt.FastWrite(("Idle: " + StringUtils.SecToMS(TimeIdle()) + "s" + new string(' ', 11)).Substring(0, 11), 51, 25, 31);
             Crt.FastWrite("Left: " + StringUtils.SecToHMS(TimeLeft()) + "s", 65, 25, 31);
         }

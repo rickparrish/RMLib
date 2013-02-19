@@ -25,15 +25,11 @@ namespace RandM.RMLib
 {
     static public class RMEncoding
     {
-        private static Encoding _Ansi = null;
+        private static Encoding _Ansi = new RMEncodingAnsi();
 
         public static Encoding Ansi
         {
-            get
-            {
-                if (_Ansi == null) _Ansi = new RMEncodingAnsi();
-                return _Ansi;
-            }
+            get { return _Ansi; }
         }
 
     }

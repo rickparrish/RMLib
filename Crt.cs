@@ -33,6 +33,7 @@ namespace RandM.RMLib
     {
         /* Private variables */
         static private Queue<char> _KeyBuf = new Queue<char>();
+        static private object _Lock = new object();
         static private int _NormAttr = LightGray;
         static private NativeMethods.COORD _ScreenSize = new NativeMethods.COORD();
         static private IntPtr _StdInputHandle = IntPtr.Zero;
@@ -212,6 +213,10 @@ namespace RandM.RMLib
         /// <param name="F">The text file to associate with the CRT window</param>
         static public void AssignCrt(object f)
         {
+            lock (_Lock)
+            {
+                // Not going to implement
+            }
         }
 
         /// <summary>
@@ -261,7 +266,10 @@ namespace RandM.RMLib
         /// </remarks>
         static public void ClrBol()
         {
-            FastWrite(new string(' ', WhereX()), WindMinX + 1, WhereYA(), _TextAttr);
+            lock (_Lock)
+            {
+                FastWrite(new string(' ', WhereX()), WindMinX + 1, WhereYA(), _TextAttr);
+            }
         }
 
         /// <summary>
@@ -277,8 +285,11 @@ namespace RandM.RMLib
         /// </remarks>
         static public void ClrBos()
         {
-            ScrollUpWindow(WhereY());
-            ScrollDownWindow(WhereY());
+            lock (_Lock)
+            {
+                ScrollUpWindow(WhereY());
+                ScrollDownWindow(WhereY());
+            }
         }
 
         /// <summary>
@@ -294,7 +305,10 @@ namespace RandM.RMLib
         /// </remarks>
         static public void ClrEol()
         {
-            FastWrite(new string(' ', WindMaxX - WhereX() + 1), WhereXA(), WhereYA(), _TextAttr);
+            lock (_Lock)
+            {
+                FastWrite(new string(' ', WindMaxX - WhereX() + 1), WhereXA(), WhereYA(), _TextAttr);
+            }
         }
 
         /// <summary>
@@ -310,8 +324,11 @@ namespace RandM.RMLib
         /// </remarks>
         static public void ClrEos()
         {
-            ScrollDownWindow(WindRows - WhereY() + 1);
-            ScrollUpWindow(WindRows - WhereY() + 1);
+            lock (_Lock)
+            {
+                ScrollDownWindow(WindRows - WhereY() + 1);
+                ScrollUpWindow(WindRows - WhereY() + 1);
+            }
         }
 
         /// <summary>
@@ -327,7 +344,10 @@ namespace RandM.RMLib
         /// </remarks>
         static public void ClrLine()
         {
-            FastWrite(new string(' ', WindCols), WindMinX + 1, WhereYA(), _TextAttr);
+            lock (_Lock)
+            {
+                FastWrite(new string(' ', WindCols), WindMinX + 1, WhereYA(), _TextAttr);
+            }
         }
 
         /// <summary>
@@ -343,22 +363,25 @@ namespace RandM.RMLib
         /// </remarks>
         static public void ClrScr()
         {
-            if (OSUtils.IsWindows)
+            lock (_Lock)
             {
-                ScrollUpWindow(WindRows);
-            }
-            else
-            {
-                try
+                if (OSUtils.IsWindows)
                 {
-                    Console.Clear();
+                    ScrollUpWindow(WindRows);
                 }
-                catch (NotImplementedException)
+                else
                 {
-                    // Can't do that
+                    try
+                    {
+                        Console.Clear();
+                    }
+                    catch (NotImplementedException)
+                    {
+                        // Can't do that
+                    }
                 }
+                GotoXY(1, 1);
             }
-            GotoXY(1, 1);
         }
 
         /// <summary>
@@ -366,7 +389,10 @@ namespace RandM.RMLib
         /// </summary>
         static public void Conceal()
         {
-            TextColor((_TextAttr & 0xF0) >> 4);
+            lock (_Lock)
+            {
+                TextColor((_TextAttr & 0xF0) >> 4);
+            }
         }
 
         /// <summary>
@@ -397,7 +423,10 @@ namespace RandM.RMLib
         /// </remarks>
         static public void DelLine()
         {
-            DelLine(1);
+            lock (_Lock)
+            {
+                DelLine(1);
+            }
         }
 
         /// <summary>
@@ -414,7 +443,10 @@ namespace RandM.RMLib
         /// <param name="count">The number of lines to delete</param>
         static public void DelLine(int count)
         {
-            ScrollUpWindow(count);
+            lock (_Lock)
+            {
+                ScrollUpWindow(count);
+            }
         }
 
         /// <summary>
@@ -438,7 +470,10 @@ namespace RandM.RMLib
 
         static public void FastWrite(string text, int column, int row, int foregroundColour, int backgroundColour)
         {
-            FastWrite(text, column, row, foregroundColour | (backgroundColour << 4));
+            lock (_Lock)
+            {
+                FastWrite(text, column, row, foregroundColour | (backgroundColour << 4));
+            }
         }
 
         /// <summary>
@@ -452,60 +487,63 @@ namespace RandM.RMLib
         /// <param name="attribute">The text attribute to colour the text</param>
         static public void FastWrite(string text, int column, int row, int attribute)
         {
-            if ((column <= _ScreenSize.X) && (row <= _ScreenSize.Y))
+            lock (_Lock)
             {
-                if (OSUtils.IsWindows)
+                if ((column <= _ScreenSize.X) && (row <= _ScreenSize.Y))
                 {
-                    NativeMethods.CHAR_INFO[] Buffer = new NativeMethods.CHAR_INFO[text.Length];
-                    for (int i = 0; i < text.Length; i++)
+                    if (OSUtils.IsWindows)
                     {
-                        Buffer[i].Attributes = (ushort)attribute;
-                        Buffer[i].AsciiChar = text[i];
+                        NativeMethods.CHAR_INFO[] Buffer = new NativeMethods.CHAR_INFO[text.Length];
+                        for (int i = 0; i < text.Length; i++)
+                        {
+                            Buffer[i].Attributes = (ushort)attribute;
+                            Buffer[i].AsciiChar = text[i];
+                        }
+
+                        NativeMethods.COORD BufferCoord = new NativeMethods.COORD();
+                        BufferCoord.X = 0;
+                        BufferCoord.Y = 0;
+
+                        NativeMethods.COORD BufferSize = new NativeMethods.COORD();
+                        BufferSize.X = (short)text.Length;
+                        BufferSize.Y = 1;
+
+                        NativeMethods.SMALL_RECT WriteRegion = new NativeMethods.SMALL_RECT();
+                        WriteRegion.Bottom = (short)(row - 1);
+                        WriteRegion.Left = (short)(column - 1);
+                        WriteRegion.Right = (short)((column - 1) + text.Length);
+                        WriteRegion.Top = (short)(row - 1);
+
+                        NativeMethods.WriteConsoleOutput(_StdOutputHandle, Buffer, BufferSize, BufferCoord, ref WriteRegion);
                     }
-
-                    NativeMethods.COORD BufferCoord = new NativeMethods.COORD();
-                    BufferCoord.X = 0;
-                    BufferCoord.Y = 0;
-
-                    NativeMethods.COORD BufferSize = new NativeMethods.COORD();
-                    BufferSize.X = (short)text.Length;
-                    BufferSize.Y = 1;
-
-                    NativeMethods.SMALL_RECT WriteRegion = new NativeMethods.SMALL_RECT();
-                    WriteRegion.Bottom = (short)(row - 1);
-                    WriteRegion.Left = (short)(column - 1);
-                    WriteRegion.Right = (short)((column - 1) + text.Length);
-                    WriteRegion.Top = (short)(row - 1);
-
-                    NativeMethods.WriteConsoleOutput(_StdOutputHandle, Buffer, BufferSize, BufferCoord, ref WriteRegion);
-                }
-                else
-                {
-                    try
+                    else
                     {
-                        int OldX = Console.CursorLeft;
-                        int OldY = Console.CursorTop;
-                        ConsoleColor OldFore = Console.ForegroundColor;
-                        ConsoleColor OldBack = Console.BackgroundColor;
+                        try
+                        {
+                            int OldX = Console.CursorLeft;
+                            int OldY = Console.CursorTop;
+                            ConsoleColor OldFore = Console.ForegroundColor;
+                            ConsoleColor OldBack = Console.BackgroundColor;
 
-                        Console.SetCursorPosition(column - 1, row - 1);
-                        //Console.ForegroundColor = 
-                        GetConsoleColour(attribute % 16);
-                        //Console.BackgroundColor = 
-                        GetConsoleColour(attribute / 16);
+                            Console.SetCursorPosition(column - 1, row - 1);
+                            //Console.ForegroundColor = 
+                            GetConsoleColour(attribute % 16);
+                            //Console.BackgroundColor = 
+                            GetConsoleColour(attribute / 16);
 
-                        Console.Write(text);
-                        // TODO Keep text in buffer for SaveScreen() and RestoreScreen()
+                            Console.Write(text);
+                            // TODO Keep text in buffer for SaveScreen() and RestoreScreen()
 
-                        Console.SetCursorPosition(OldX, OldY);
-                        Console.ForegroundColor = OldFore;
-                        Console.BackgroundColor = OldBack;
+                            Console.SetCursorPosition(OldX, OldY);
+                            Console.ForegroundColor = OldFore;
+                            Console.BackgroundColor = OldBack;
+                        }
+                        catch (NotImplementedException)
+                        {
+                            // Can't do that
+                        }
+
                     }
-                    catch (NotImplementedException)
-                    {
-                        // Can't do that
-                    }
-
                 }
             }
         }
@@ -520,27 +558,30 @@ namespace RandM.RMLib
         /// <returns>The text attribute at the given X/Y coordinate</returns>
         static public int GetAttrAt(int column, int row)
         {
-            if ((column <= _ScreenSize.X) && (row <= _ScreenSize.Y))
+            lock (_Lock)
             {
-                if (OSUtils.IsWindows)
+                if ((column <= _ScreenSize.X) && (row <= _ScreenSize.Y))
                 {
-                    NativeMethods.COORD ReadCoord = new NativeMethods.COORD();
-                    ReadCoord.X = (short)(column - 1);
-                    ReadCoord.Y = (short)(row - 1);
+                    if (OSUtils.IsWindows)
+                    {
+                        NativeMethods.COORD ReadCoord = new NativeMethods.COORD();
+                        ReadCoord.X = (short)(column - 1);
+                        ReadCoord.Y = (short)(row - 1);
 
-                    ushort[] Attribute = new ushort[1];
-                    uint NumberOfAttrsRead = 0;
-                    NativeMethods.ReadConsoleOutputAttribute(_StdOutputHandle, Attribute, 1, ReadCoord, out NumberOfAttrsRead);
-                    return Attribute[0];
+                        ushort[] Attribute = new ushort[1];
+                        uint NumberOfAttrsRead = 0;
+                        NativeMethods.ReadConsoleOutputAttribute(_StdOutputHandle, Attribute, 1, ReadCoord, out NumberOfAttrsRead);
+                        return Attribute[0];
+                    }
+                    else
+                    {
+                        return LightGray;
+                    }
                 }
                 else
                 {
                     return LightGray;
                 }
-            }
-            else
-            {
-                return LightGray;
             }
         }
 
@@ -554,53 +595,59 @@ namespace RandM.RMLib
         /// <returns>The character at the given X/Y coordinate</returns>
         static public char GetCharAt(int column, int row)
         {
-            if ((column <= _ScreenSize.X) && (row <= _ScreenSize.Y))
+            lock (_Lock)
             {
-                if (OSUtils.IsWindows)
+                if ((column <= _ScreenSize.X) && (row <= _ScreenSize.Y))
                 {
-                    NativeMethods.COORD ReadCoord = new NativeMethods.COORD();
-                    ReadCoord.X = (short)(column - 1);
-                    ReadCoord.Y = (short)(row - 1);
+                    if (OSUtils.IsWindows)
+                    {
+                        NativeMethods.COORD ReadCoord = new NativeMethods.COORD();
+                        ReadCoord.X = (short)(column - 1);
+                        ReadCoord.Y = (short)(row - 1);
 
-                    StringBuilder Character = new StringBuilder();
-                    uint NumberOfCharsRead = 0;
-                    NativeMethods.ReadConsoleOutputCharacter(_StdOutputHandle, Character, 1, ReadCoord, out NumberOfCharsRead);
-                    return Character[0];
+                        StringBuilder Character = new StringBuilder();
+                        uint NumberOfCharsRead = 0;
+                        NativeMethods.ReadConsoleOutputCharacter(_StdOutputHandle, Character, 1, ReadCoord, out NumberOfCharsRead);
+                        return Character[0];
+                    }
+                    else
+                    {
+                        return ' ';
+                    }
                 }
                 else
                 {
                     return ' ';
                 }
             }
-            else
-            {
-                return ' ';
-            }
         }
 
         static private ConsoleColor GetConsoleColour(int AColour)
         {
-            switch (AColour)
+            lock (_Lock)
             {
-                case 0: return ConsoleColor.Black;
-                case 1: return ConsoleColor.DarkBlue;
-                case 2: return ConsoleColor.DarkGreen;
-                case 3: return ConsoleColor.DarkCyan;
-                case 4: return ConsoleColor.DarkRed;
-                case 5: return ConsoleColor.DarkMagenta;
-                case 6: return ConsoleColor.DarkYellow;
-                case 7: return ConsoleColor.Gray;
-                case 8: return ConsoleColor.DarkGray;
-                case 9: return ConsoleColor.Blue;
-                case 10: return ConsoleColor.Green;
-                case 11: return ConsoleColor.Cyan;
-                case 12: return ConsoleColor.Red;
-                case 13: return ConsoleColor.Magenta;
-                case 14: return ConsoleColor.Yellow;
-                case 15: return ConsoleColor.White;
-            }
+                switch (AColour)
+                {
+                    case 0: return ConsoleColor.Black;
+                    case 1: return ConsoleColor.DarkBlue;
+                    case 2: return ConsoleColor.DarkGreen;
+                    case 3: return ConsoleColor.DarkCyan;
+                    case 4: return ConsoleColor.DarkRed;
+                    case 5: return ConsoleColor.DarkMagenta;
+                    case 6: return ConsoleColor.DarkYellow;
+                    case 7: return ConsoleColor.Gray;
+                    case 8: return ConsoleColor.DarkGray;
+                    case 9: return ConsoleColor.Blue;
+                    case 10: return ConsoleColor.Green;
+                    case 11: return ConsoleColor.Cyan;
+                    case 12: return ConsoleColor.Red;
+                    case 13: return ConsoleColor.Magenta;
+                    case 14: return ConsoleColor.Yellow;
+                    case 15: return ConsoleColor.White;
+                }
 
-            return ConsoleColor.Black;
+                return ConsoleColor.Black;
+            }
         }
 
         /// <summary>
@@ -615,29 +662,32 @@ namespace RandM.RMLib
         /// <param name="row">The 1-based row to move to</param>
         static public void GotoXY(int column, int row)
         {
-            if ((column > 0) && (row > 0))
+            lock (_Lock)
             {
-                int X = column - 1 + WindMinX;
-                int Y = row - 1 + WindMinY;
-                if ((X <= WindMaxX) && (Y <= WindMaxY))
+                if ((column > 0) && (row > 0))
                 {
-                    if (OSUtils.IsWindows)
+                    int X = column - 1 + WindMinX;
+                    int Y = row - 1 + WindMinY;
+                    if ((X <= WindMaxX) && (Y <= WindMaxY))
                     {
-                        NativeMethods.COORD CursorPosition = new NativeMethods.COORD();
-                        CursorPosition.X = (short)X;
-                        CursorPosition.Y = (short)Y;
+                        if (OSUtils.IsWindows)
+                        {
+                            NativeMethods.COORD CursorPosition = new NativeMethods.COORD();
+                            CursorPosition.X = (short)X;
+                            CursorPosition.Y = (short)Y;
 
-                        NativeMethods.SetConsoleCursorPosition(_StdOutputHandle, CursorPosition);
-                    }
-                    else
-                    {
-                        try
-                        {
-                            Console.SetCursorPosition(X, Y);
+                            NativeMethods.SetConsoleCursorPosition(_StdOutputHandle, CursorPosition);
                         }
-                        catch (NotImplementedException)
+                        else
                         {
-                            // Can't do that
+                            try
+                            {
+                                Console.SetCursorPosition(X, Y);
+                            }
+                            catch (NotImplementedException)
+                            {
+                                // Can't do that
+                            }
                         }
                     }
                 }
@@ -649,36 +699,42 @@ namespace RandM.RMLib
         /// </summary>
         static public void HideConsole()
         {
-            if (OSUtils.IsWindows)
+            lock (_Lock)
             {
-                IntPtr hWnd = NativeMethods.GetConsoleWindow();
-                if (hWnd != IntPtr.Zero)
+                if (OSUtils.IsWindows)
                 {
-                    NativeMethods.ShowWindow(hWnd, NativeMethods.SW_HIDE);
+                    IntPtr hWnd = NativeMethods.GetConsoleWindow();
+                    if (hWnd != IntPtr.Zero)
+                    {
+                        NativeMethods.ShowWindow(hWnd, NativeMethods.SW_HIDE);
+                    }
                 }
             }
         }
 
         static public void HideCursor()
         {
-            if (OSUtils.IsWindows)
+            lock (_Lock)
             {
-                NativeMethods.CONSOLE_CURSOR_INFO CCI;
-                if (NativeMethods.GetConsoleCursorInfo(_StdOutputHandle, out CCI))
+                if (OSUtils.IsWindows)
                 {
-                    CCI.Visible = false;
-                    NativeMethods.SetConsoleCursorInfo(_StdOutputHandle, ref CCI);
+                    NativeMethods.CONSOLE_CURSOR_INFO CCI;
+                    if (NativeMethods.GetConsoleCursorInfo(_StdOutputHandle, out CCI))
+                    {
+                        CCI.Visible = false;
+                        NativeMethods.SetConsoleCursorInfo(_StdOutputHandle, ref CCI);
+                    }
                 }
-            }
-            else
-            {
-                try
+                else
                 {
-                    Console.CursorVisible = false;
-                }
-                catch (NotImplementedException)
-                {
-                    // Can't do that
+                    try
+                    {
+                        Console.CursorVisible = false;
+                    }
+                    catch (NotImplementedException)
+                    {
+                        // Can't do that
+                    }
                 }
             }
         }
@@ -693,7 +749,10 @@ namespace RandM.RMLib
         /// </remarks>
         static public void HighVideo()
         {
-            _TextAttr |= 0x08;
+            lock (_Lock)
+            {
+                _TextAttr |= 0x08;
+            }
         }
 
         /// <summary>
@@ -711,7 +770,10 @@ namespace RandM.RMLib
         /// </remarks>
         static public void InsLine()
         {
-            InsLine(1);
+            lock (_Lock)
+            {
+                InsLine(1);
+            }
         }
 
         /// <summary>
@@ -730,7 +792,10 @@ namespace RandM.RMLib
         /// <param name="count">The number of lines to insert</param>
         static public void InsLine(int count)
         {
-            ScrollDownWindow(count);
+            lock (_Lock)
+            {
+                ScrollDownWindow(count);
+            }
         }
 
         /// <summary>
@@ -742,55 +807,117 @@ namespace RandM.RMLib
         /// <returns>True If key has been pressed False If key has not been pressed</returns>
         static public bool KeyPressed()
         {
-            // Check if we have a key in the buffer already
-            if (_KeyBuf.Count > 0) return true;
-
-            uint NumberOfEvents = 0;
-            do
+            lock (_Lock)
             {
-                if (OSUtils.IsWindows)
-                {
-                    NativeMethods.GetNumberOfConsoleInputEvents(_StdInputHandle, out NumberOfEvents);
-                    if (NumberOfEvents > 0)
-                    {
-                        NativeMethods.INPUT_RECORD[] Buffer = new NativeMethods.INPUT_RECORD[1];
-                        uint NumberOfEventsRead = 0;
-                        if (NativeMethods.ReadConsoleInput(_StdInputHandle, Buffer, 1, out NumberOfEventsRead))
-                        {
-                            if ((Buffer[0].EventType == NativeMethods.KEY_EVENT) && (Buffer[0].KeyEvent.bKeyDown))
-                            {
-                                bool Alt = (NativeMethods.GetKeyState(NativeMethods.VirtualKeyStates.VK_MENU) & 0x8000) == 0x8000;
-                                bool Ctrl = (NativeMethods.GetKeyState(NativeMethods.VirtualKeyStates.VK_CONTROL) & 0x8000) == 0x8000;
-                                bool Shift = (NativeMethods.GetKeyState(NativeMethods.VirtualKeyStates.VK_SHIFT) & 0x8000) == 0x8000;
+                // Check if we have a key in the buffer already
+                if (_KeyBuf.Count > 0) return true;
 
-                                if ((Buffer[0].KeyEvent.wVirtualKeyCode >= 65) && (Buffer[0].KeyEvent.wVirtualKeyCode <= 90))
+                uint NumberOfEvents = 0;
+                do
+                {
+                    if (OSUtils.IsWindows)
+                    {
+                        NativeMethods.GetNumberOfConsoleInputEvents(_StdInputHandle, out NumberOfEvents);
+                        if (NumberOfEvents > 0)
+                        {
+                            NativeMethods.INPUT_RECORD[] Buffer = new NativeMethods.INPUT_RECORD[1];
+                            uint NumberOfEventsRead = 0;
+                            if (NativeMethods.ReadConsoleInput(_StdInputHandle, Buffer, 1, out NumberOfEventsRead))
+                            {
+                                if ((Buffer[0].EventType == NativeMethods.KEY_EVENT) && (Buffer[0].KeyEvent.bKeyDown))
                                 {
-                                    bool CapsLock = (NativeMethods.GetKeyState(NativeMethods.VirtualKeyStates.VK_CAPITAL) & 0x0001) == 0x0001;
-                                    Shift ^= CapsLock;
+                                    bool Alt = (NativeMethods.GetKeyState(NativeMethods.VirtualKeyStates.VK_MENU) & 0x8000) == 0x8000;
+                                    bool Ctrl = (NativeMethods.GetKeyState(NativeMethods.VirtualKeyStates.VK_CONTROL) & 0x8000) == 0x8000;
+                                    bool Shift = (NativeMethods.GetKeyState(NativeMethods.VirtualKeyStates.VK_SHIFT) & 0x8000) == 0x8000;
+
+                                    if ((Buffer[0].KeyEvent.wVirtualKeyCode >= 65) && (Buffer[0].KeyEvent.wVirtualKeyCode <= 90))
+                                    {
+                                        bool CapsLock = (NativeMethods.GetKeyState(NativeMethods.VirtualKeyStates.VK_CAPITAL) & 0x0001) == 0x0001;
+                                        Shift ^= CapsLock;
+                                    }
+
+                                    if ((Buffer[0].KeyEvent.wVirtualKeyCode >= 96) && (Buffer[0].KeyEvent.wVirtualKeyCode <= 105))
+                                    {
+                                        bool NumLock = (NativeMethods.GetKeyState(NativeMethods.VirtualKeyStates.VK_NUMLOCK) & 0x0001) == 0x0001;
+                                        Shift |= NumLock;
+                                    }
+
+                                    int Key = 0;
+                                    if (Alt)
+                                    {
+                                        Key = TAltKeys[Buffer[0].KeyEvent.wVirtualKeyCode];
+                                    }
+                                    else if (Ctrl)
+                                    {
+                                        Key = TCtrlKeys[Buffer[0].KeyEvent.wVirtualKeyCode];
+                                    }
+                                    else if (Shift)
+                                    {
+                                        Key = TShiftKeys[Buffer[0].KeyEvent.wVirtualKeyCode];
+                                    }
+                                    else
+                                    {
+                                        Key = TKeys[Buffer[0].KeyEvent.wVirtualKeyCode];
+                                    }
+
+                                    if (Key >= 1000)
+                                    {
+                                        _KeyBuf.Enqueue((char)0);
+                                        _KeyBuf.Enqueue((char)(Key - 1000));
+                                    }
+                                    else if (Key > 0)
+                                    {
+                                        _KeyBuf.Enqueue((char)Key);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        try
+                        {
+                            NumberOfEvents = (uint)(Console.KeyAvailable ? 1 : 0);
+                            if (NumberOfEvents > 0)
+                            {
+                                ConsoleKeyInfo CKI = Console.ReadKey(true);
+                                bool Alt = (CKI.Modifiers & ConsoleModifiers.Alt) == ConsoleModifiers.Alt;
+                                bool Ctrl = (CKI.Modifiers & ConsoleModifiers.Control) == ConsoleModifiers.Control;
+                                bool Shift = (CKI.Modifiers & ConsoleModifiers.Shift) == ConsoleModifiers.Shift;
+
+                                if (((int)CKI.Key >= 65) && ((int)CKI.Key <= 90))
+                                {
+                                    try
+                                    {
+                                        Shift ^= Console.CapsLock;
+                                    }
+                                    catch (NotSupportedException)
+                                    {
+                                        // Looks like mono doesn't support this
+                                    }
                                 }
 
-                                if ((Buffer[0].KeyEvent.wVirtualKeyCode >= 96) && (Buffer[0].KeyEvent.wVirtualKeyCode <= 105))
+                                if (((int)CKI.Key >= 96) && ((int)CKI.Key <= 105))
                                 {
-                                    bool NumLock = (NativeMethods.GetKeyState(NativeMethods.VirtualKeyStates.VK_NUMLOCK) & 0x0001) == 0x0001;
-                                    Shift |= NumLock;
+                                    Shift |= Console.NumberLock;
                                 }
 
                                 int Key = 0;
                                 if (Alt)
                                 {
-                                    Key = TAltKeys[Buffer[0].KeyEvent.wVirtualKeyCode];
+                                    Key = TAltKeys[(int)CKI.Key];
                                 }
                                 else if (Ctrl)
                                 {
-                                    Key = TCtrlKeys[Buffer[0].KeyEvent.wVirtualKeyCode];
+                                    Key = TCtrlKeys[(int)CKI.Key];
                                 }
                                 else if (Shift)
                                 {
-                                    Key = TShiftKeys[Buffer[0].KeyEvent.wVirtualKeyCode];
+                                    Key = TShiftKeys[(int)CKI.Key];
                                 }
                                 else
                                 {
-                                    Key = TKeys[Buffer[0].KeyEvent.wVirtualKeyCode];
+                                    Key = TKeys[(int)CKI.Key];
                                 }
 
                                 if (Key >= 1000)
@@ -804,75 +931,16 @@ namespace RandM.RMLib
                                 }
                             }
                         }
-                    }
-                }
-                else
-                {
-                    try
-                    {
-                        NumberOfEvents = (uint)(Console.KeyAvailable ? 1 : 0);
-                        if (NumberOfEvents > 0)
+                        catch (NotImplementedException)
                         {
-                            ConsoleKeyInfo CKI = Console.ReadKey(true);
-                            bool Alt = (CKI.Modifiers & ConsoleModifiers.Alt) == ConsoleModifiers.Alt;
-                            bool Ctrl = (CKI.Modifiers & ConsoleModifiers.Control) == ConsoleModifiers.Control;
-                            bool Shift = (CKI.Modifiers & ConsoleModifiers.Shift) == ConsoleModifiers.Shift;
-
-                            if (((int)CKI.Key >= 65) && ((int)CKI.Key <= 90))
-                            {
-                                try
-                                {
-                                    Shift ^= Console.CapsLock;
-                                }
-                                catch (NotSupportedException)
-                                {
-                                    // Looks like mono doesn't support this
-                                }
-                            }
-
-                            if (((int)CKI.Key >= 96) && ((int)CKI.Key <= 105))
-                            {
-                                Shift |= Console.NumberLock;
-                            }
-
-                            int Key = 0;
-                            if (Alt)
-                            {
-                                Key = TAltKeys[(int)CKI.Key];
-                            }
-                            else if (Ctrl)
-                            {
-                                Key = TCtrlKeys[(int)CKI.Key];
-                            }
-                            else if (Shift)
-                            {
-                                Key = TShiftKeys[(int)CKI.Key];
-                            }
-                            else
-                            {
-                                Key = TKeys[(int)CKI.Key];
-                            }
-
-                            if (Key >= 1000)
-                            {
-                                _KeyBuf.Enqueue((char)0);
-                                _KeyBuf.Enqueue((char)(Key - 1000));
-                            }
-                            else if (Key > 0)
-                            {
-                                _KeyBuf.Enqueue((char)Key);
-                            }
+                            // Can't do that
+                            NumberOfEvents = 0;
                         }
                     }
-                    catch (NotImplementedException)
-                    {
-                        // Can't do that
-                        NumberOfEvents = 0;
-                    }
-                }
-            } while (NumberOfEvents > 0);
+                } while (NumberOfEvents > 0);
 
-            return false;
+                return false;
+            }
         }
 
         /// <summary>
@@ -893,7 +961,10 @@ namespace RandM.RMLib
         /// </remarks>
         static public void LowVideo()
         {
-            _TextAttr &= 0xF7;
+            lock (_Lock)
+            {
+                _TextAttr &= 0xF7;
+            }
         }
 
         /// <summary>
@@ -906,7 +977,10 @@ namespace RandM.RMLib
         /// </remarks>
         static public void NormVideo()
         {
-            TextAttr = _NormAttr;
+            lock (_Lock)
+            {
+                TextAttr = _NormAttr;
+            }
         }
 
         /// <summary>
@@ -914,6 +988,10 @@ namespace RandM.RMLib
         /// </summary>
         static public void NoSound()
         {
+            lock (_Lock)
+            {
+                // Not going to implement
+            }
         }
 
         /// <summary>
@@ -925,8 +1003,11 @@ namespace RandM.RMLib
         /// <returns>Returns a character or an extended scan code.</returns>
         static public char ReadKey()
         {
-            while (!KeyPressed()) Delay(1);
-            return _KeyBuf.Dequeue();
+            lock (_Lock)
+            {
+                while (!KeyPressed()) Delay(1);
+                return _KeyBuf.Dequeue();
+            }
         }
 
         /// <summary>
@@ -935,57 +1016,63 @@ namespace RandM.RMLib
         /// <returns>Returns a string of text</returns>
         static public void ReadLn(out string text)
         {
-            // TODO This needs a lot of work
-
-            text = "";
-
-            char Ch = ReadKey();
-            while (Ch != '\r')
+            lock (_Lock)
             {
-                if (Ch == '\b')
-                {
-                    if (text.Length > 0)
-                    {
-                        Write("\b \b");
-                        text = text.Substring(0, text.Length - 1);
-                    }
-                }
-                else if (((byte)Ch >= 32) && ((byte)Ch <= 126))
-                {
-                    Write(Ch.ToString());
-                    text += Ch;
-                }
+                // TODO This needs a lot of work
 
-                Ch = ReadKey();
+                text = "";
+
+                char Ch = ReadKey();
+                while (Ch != '\r')
+                {
+                    if (Ch == '\b')
+                    {
+                        if (text.Length > 0)
+                        {
+                            Write("\b \b");
+                            text = text.Substring(0, text.Length - 1);
+                        }
+                    }
+                    else if (((byte)Ch >= 32) && ((byte)Ch <= 126))
+                    {
+                        Write(Ch.ToString());
+                        text += Ch;
+                    }
+
+                    Ch = ReadKey();
+                }
+                WriteLn();
             }
-            WriteLn();
         }
 
         static public void RestoreScreen(NativeMethods.CHAR_INFO[] buffer, int left, int top, int right, int bottom)
         {
-            if (OSUtils.IsWindows)
+            lock (_Lock)
             {
-                NativeMethods.COORD BufferCoord = new NativeMethods.COORD();
-                BufferCoord.X = 0;
-                BufferCoord.Y = 0;
-
-                NativeMethods.COORD BufferSize = new NativeMethods.COORD();
-                BufferSize.X = (short)(right - left + 1);
-                BufferSize.Y = (short)(bottom - top + 1);
-
-                NativeMethods.SMALL_RECT WriteRegion = new NativeMethods.SMALL_RECT();
-                WriteRegion.Left = (short)(left - 1);
-                WriteRegion.Top = (short)(top - 1);
-                WriteRegion.Right = (short)(right - 1);
-                WriteRegion.Bottom = (short)(bottom - 1);
-
-                NativeMethods.WriteConsoleOutput(_StdOutputHandle, buffer, BufferSize, BufferCoord, ref WriteRegion);
-            }
-            else
-            {
-                if (buffer != null)
+                if (OSUtils.IsWindows)
                 {
-                    // TODO Restore from buffer
+                    NativeMethods.COORD BufferCoord = new NativeMethods.COORD();
+                    BufferCoord.X = 0;
+                    BufferCoord.Y = 0;
+
+                    NativeMethods.COORD BufferSize = new NativeMethods.COORD();
+                    BufferSize.X = (short)(right - left + 1);
+                    BufferSize.Y = (short)(bottom - top + 1);
+
+                    NativeMethods.SMALL_RECT WriteRegion = new NativeMethods.SMALL_RECT();
+                    WriteRegion.Left = (short)(left - 1);
+                    WriteRegion.Top = (short)(top - 1);
+                    WriteRegion.Right = (short)(right - 1);
+                    WriteRegion.Bottom = (short)(bottom - 1);
+
+                    NativeMethods.WriteConsoleOutput(_StdOutputHandle, buffer, BufferSize, BufferCoord, ref WriteRegion);
+                }
+                else
+                {
+                    if (buffer != null)
+                    {
+                        // TODO Restore from buffer
+                    }
                 }
             }
         }
@@ -995,36 +1082,42 @@ namespace RandM.RMLib
         /// </summary>
         static public void ReverseVideo()
         {
-            TextAttr = ((_TextAttr & 0xF0) >> 4) | ((_TextAttr & 0x0F) << 4);
+            lock (_Lock)
+            {
+                TextAttr = ((_TextAttr & 0xF0) >> 4) | ((_TextAttr & 0x0F) << 4);
+            }
         }
 
         static public NativeMethods.CHAR_INFO[] SaveScreen(int left, int top, int right, int bottom)
         {
-            if (OSUtils.IsWindows)
+            lock (_Lock)
             {
-                NativeMethods.COORD BufferSize = new NativeMethods.COORD();
-                BufferSize.X = (short)(right - left + 1);
-                BufferSize.Y = (short)(bottom - top + 1);
+                if (OSUtils.IsWindows)
+                {
+                    NativeMethods.COORD BufferSize = new NativeMethods.COORD();
+                    BufferSize.X = (short)(right - left + 1);
+                    BufferSize.Y = (short)(bottom - top + 1);
 
-                NativeMethods.CHAR_INFO[] Buffer = new NativeMethods.CHAR_INFO[BufferSize.X * BufferSize.Y];
+                    NativeMethods.CHAR_INFO[] Buffer = new NativeMethods.CHAR_INFO[BufferSize.X * BufferSize.Y];
 
-                NativeMethods.COORD BufferCoord = new NativeMethods.COORD();
-                BufferCoord.X = 0;
-                BufferCoord.Y = 0;
+                    NativeMethods.COORD BufferCoord = new NativeMethods.COORD();
+                    BufferCoord.X = 0;
+                    BufferCoord.Y = 0;
 
-                NativeMethods.SMALL_RECT ReadRegion = new NativeMethods.SMALL_RECT();
-                ReadRegion.Left = (short)(left - 1);
-                ReadRegion.Top = (short)(top - 1);
-                ReadRegion.Right = (short)(right - 1);
-                ReadRegion.Bottom = (short)(bottom - 1);
+                    NativeMethods.SMALL_RECT ReadRegion = new NativeMethods.SMALL_RECT();
+                    ReadRegion.Left = (short)(left - 1);
+                    ReadRegion.Top = (short)(top - 1);
+                    ReadRegion.Right = (short)(right - 1);
+                    ReadRegion.Bottom = (short)(bottom - 1);
 
-                NativeMethods.ReadConsoleOutput(_StdOutputHandle, Buffer, BufferSize, BufferCoord, ref ReadRegion);
-                return Buffer;
-            }
-            else
-            {
-                // TODO Save from buffer
-                return null;
+                    NativeMethods.ReadConsoleOutput(_StdOutputHandle, Buffer, BufferSize, BufferCoord, ref ReadRegion);
+                    return Buffer;
+                }
+                else
+                {
+                    // TODO Save from buffer
+                    return null;
+                }
             }
         }
 
@@ -1050,33 +1143,36 @@ namespace RandM.RMLib
         /// <param name="AAttr">The text attribute to fill the void with</param>
         static private void ScrollDownCustom(int AX1, int AY1, int AX2, int AY2, int ALines, char ACh, int AAttr)
         {
-            if (OSUtils.IsWindows)
+            lock (_Lock)
             {
-                NativeMethods.COORD DestinationOrigin = new NativeMethods.COORD();
-                DestinationOrigin.X = (short)AX1;
-                DestinationOrigin.Y = (short)(AY1 + ALines);
-
-                NativeMethods.CHAR_INFO Fill = new NativeMethods.CHAR_INFO();
-                Fill.AsciiChar = ACh;
-                Fill.Attributes = (ushort)AAttr;
-
-                NativeMethods.SMALL_RECT ScrollRectangle = new NativeMethods.SMALL_RECT();
-                ScrollRectangle.Bottom = (short)(AY2 - ALines);
-                ScrollRectangle.Left = (short)AX1;
-                ScrollRectangle.Right = (short)AX2;
-                ScrollRectangle.Top = (short)AY1;
-
-                NativeMethods.ScrollConsoleScreenBuffer(_StdOutputHandle, ref ScrollRectangle, IntPtr.Zero, DestinationOrigin, ref Fill);
-            }
-            else
-            {
-                try
+                if (OSUtils.IsWindows)
                 {
-                    Console.MoveBufferArea(AX1, AY1, AX2, AY2 - ALines, AX1, AY1 + ALines, ' ', GetConsoleColour(_TextAttr % 16), GetConsoleColour(_TextAttr / 16));
+                    NativeMethods.COORD DestinationOrigin = new NativeMethods.COORD();
+                    DestinationOrigin.X = (short)AX1;
+                    DestinationOrigin.Y = (short)(AY1 + ALines);
+
+                    NativeMethods.CHAR_INFO Fill = new NativeMethods.CHAR_INFO();
+                    Fill.AsciiChar = ACh;
+                    Fill.Attributes = (ushort)AAttr;
+
+                    NativeMethods.SMALL_RECT ScrollRectangle = new NativeMethods.SMALL_RECT();
+                    ScrollRectangle.Bottom = (short)(AY2 - ALines);
+                    ScrollRectangle.Left = (short)AX1;
+                    ScrollRectangle.Right = (short)AX2;
+                    ScrollRectangle.Top = (short)AY1;
+
+                    NativeMethods.ScrollConsoleScreenBuffer(_StdOutputHandle, ref ScrollRectangle, IntPtr.Zero, DestinationOrigin, ref Fill);
                 }
-                catch (NotImplementedException)
+                else
                 {
-                    // Can't do that
+                    try
+                    {
+                        Console.MoveBufferArea(AX1, AY1, AX2, AY2 - ALines, AX1, AY1 + ALines, ' ', GetConsoleColour(_TextAttr % 16), GetConsoleColour(_TextAttr / 16));
+                    }
+                    catch (NotImplementedException)
+                    {
+                        // Can't do that
+                    }
                 }
             }
         }
@@ -1087,7 +1183,10 @@ namespace RandM.RMLib
         /// <param name="count">The number of lines to scroll</param>
         static public void ScrollDownScreen(int count)
         {
-            ScrollDownCustom(0, 0, _ScreenSize.X - 1, _ScreenSize.Y - 1, count, ' ', _TextAttr);
+            lock (_Lock)
+            {
+                ScrollDownCustom(0, 0, _ScreenSize.X - 1, _ScreenSize.Y - 1, count, ' ', _TextAttr);
+            }
         }
 
         /// <summary>
@@ -1096,7 +1195,10 @@ namespace RandM.RMLib
         /// <param name="count">The number of lines to scroll</param>
         static public void ScrollDownWindow(int count)
         {
-            ScrollDownCustom(WindMinX, WindMinY, WindMaxX, WindMaxY, count, ' ', _TextAttr);
+            lock (_Lock)
+            {
+                ScrollDownCustom(WindMinX, WindMinY, WindMaxX, WindMaxY, count, ' ', _TextAttr);
+            }
         }
 
         /// <summary>
@@ -1111,46 +1213,49 @@ namespace RandM.RMLib
         /// <param name="AAttr">The text attribute to fill the void with</param>
         static private void ScrollUpCustom(int AX1, int AY1, int AX2, int AY2, int ALines, char ACh, int AAttr)
         {
-            if (OSUtils.IsWindows)
+            lock (_Lock)
             {
-                NativeMethods.SMALL_RECT ClipRectangle = new NativeMethods.SMALL_RECT();
-                ClipRectangle.Bottom = (short)AY2;
-                ClipRectangle.Left = (short)AX1;
-                ClipRectangle.Right = (short)AX2;
-                ClipRectangle.Top = (short)AY1;
-
-                NativeMethods.CHAR_INFO Fill = new NativeMethods.CHAR_INFO();
-                Fill.AsciiChar = ACh;
-                Fill.Attributes = (ushort)AAttr;
-
-                NativeMethods.SMALL_RECT ScrollRectangle = ClipRectangle;
-
-                NativeMethods.COORD DestinationOrigin = new NativeMethods.COORD();
-                DestinationOrigin.X = (short)AX1;
-                DestinationOrigin.Y = (short)(AY1 - ALines);
-                NativeMethods.ScrollConsoleScreenBuffer(_StdOutputHandle, ref ScrollRectangle, ref ClipRectangle, DestinationOrigin, ref Fill);
-            }
-            else
-            {
-                try
+                if (OSUtils.IsWindows)
                 {
-                    Console.MoveBufferArea(AX1, AY1, AX2, AY2, AX1, AY1 - ALines, ' ', GetConsoleColour(_TextAttr % 16), GetConsoleColour(_TextAttr / 16));
+                    NativeMethods.SMALL_RECT ClipRectangle = new NativeMethods.SMALL_RECT();
+                    ClipRectangle.Bottom = (short)AY2;
+                    ClipRectangle.Left = (short)AX1;
+                    ClipRectangle.Right = (short)AX2;
+                    ClipRectangle.Top = (short)AY1;
+
+                    NativeMethods.CHAR_INFO Fill = new NativeMethods.CHAR_INFO();
+                    Fill.AsciiChar = ACh;
+                    Fill.Attributes = (ushort)AAttr;
+
+                    NativeMethods.SMALL_RECT ScrollRectangle = ClipRectangle;
+
+                    NativeMethods.COORD DestinationOrigin = new NativeMethods.COORD();
+                    DestinationOrigin.X = (short)AX1;
+                    DestinationOrigin.Y = (short)(AY1 - ALines);
+                    NativeMethods.ScrollConsoleScreenBuffer(_StdOutputHandle, ref ScrollRectangle, ref ClipRectangle, DestinationOrigin, ref Fill);
                 }
-                catch (NotImplementedException)
+                else
                 {
                     try
                     {
-                        int OldX = Console.CursorLeft;
-                        int OldY = Console.CursorTop;
-
-                        Console.SetCursorPosition(0, _ScreenSize.Y - 1);
-                        for (int i = 0; i < ALines; i++) Console.WriteLine();
-
-                        Console.SetCursorPosition(OldX, OldY);
+                        Console.MoveBufferArea(AX1, AY1, AX2, AY2, AX1, AY1 - ALines, ' ', GetConsoleColour(_TextAttr % 16), GetConsoleColour(_TextAttr / 16));
                     }
                     catch (NotImplementedException)
                     {
-                        // Can't do that
+                        try
+                        {
+                            int OldX = Console.CursorLeft;
+                            int OldY = Console.CursorTop;
+
+                            Console.SetCursorPosition(0, _ScreenSize.Y - 1);
+                            for (int i = 0; i < ALines; i++) Console.WriteLine();
+
+                            Console.SetCursorPosition(OldX, OldY);
+                        }
+                        catch (NotImplementedException)
+                        {
+                            // Can't do that
+                        }
                     }
                 }
             }
@@ -1162,7 +1267,10 @@ namespace RandM.RMLib
         /// <param name="count">The number of lines to scroll</param>
         static public void ScrollUpScreen(int count)
         {
-            ScrollUpCustom(0, 0, _ScreenSize.X - 1, _ScreenSize.Y - 1, count, ' ', _TextAttr);
+            lock (_Lock)
+            {
+                ScrollUpCustom(0, 0, _ScreenSize.X - 1, _ScreenSize.Y - 1, count, ' ', _TextAttr);
+            }
         }
 
         /// <summary>
@@ -1171,95 +1279,110 @@ namespace RandM.RMLib
         /// <param name="count">The number of lines to scroll</param>
         static public void ScrollUpWindow(int count)
         {
-            ScrollUpCustom(WindMinX, WindMinY, WindMaxX, WindMaxY, count, ' ', _TextAttr);
+            lock (_Lock)
+            {
+                ScrollUpCustom(WindMinX, WindMinY, WindMaxX, WindMaxY, count, ' ', _TextAttr);
+            }
         }
 
         public static void SetBlinkRate(int milliseconds)
         {
-            // TODO
+            lock (_Lock)
+            {
+                // TODO
+            }
         }
 
         public static void SetIcon(IntPtr iconHandle)
         {
-            if (OSUtils.IsWindows)
+            lock (_Lock)
             {
-                try
+                if (OSUtils.IsWindows)
                 {
-                    NativeMethods.SetConsoleIcon(iconHandle);
-                }
-                catch (NotSupportedException)
-                {
-                    // Ignore
+                    try
+                    {
+                        NativeMethods.SetConsoleIcon(iconHandle);
+                    }
+                    catch (NotSupportedException)
+                    {
+                        // Ignore
+                    }
                 }
             }
         }
 
         static public void SetTitle(string text)
         {
-            if (OSUtils.IsWindows)
+            lock (_Lock)
             {
-                NativeMethods.SetConsoleTitle(text);
-            }
-            else
-            {
-                try
+                if (OSUtils.IsWindows)
                 {
-                    Console.Title = text;
+                    NativeMethods.SetConsoleTitle(text);
                 }
-                catch (NotImplementedException)
+                else
                 {
-                    // Can't do that
+                    try
+                    {
+                        Console.Title = text;
+                    }
+                    catch (NotImplementedException)
+                    {
+                        // Can't do that
+                    }
                 }
             }
         }
 
         static public void SetWindowSize(int columns, int rows)
         {
-            // Set the new console screen buffer size
-            _ScreenSize.X = (short)columns;
-            _ScreenSize.Y = (short)rows;
-            if (OSUtils.IsWindows)
+            lock (_Lock)
             {
-                NativeMethods.SetConsoleScreenBufferSize(_StdOutputHandle, _ScreenSize);
-            }
-            else
-            {
-                try
+                // Set the new console screen buffer size
+                _ScreenSize.X = (short)columns;
+                _ScreenSize.Y = (short)rows;
+                if (OSUtils.IsWindows)
                 {
-                    Console.SetBufferSize(_ScreenSize.X, _ScreenSize.Y);
+                    NativeMethods.SetConsoleScreenBufferSize(_StdOutputHandle, _ScreenSize);
                 }
-                catch (NotImplementedException)
+                else
                 {
-                    // Can't do that
-                }
-            }
-
-            // And make the actual window size match the new buffer size
-            NativeMethods.SMALL_RECT ConsoleWindow = new NativeMethods.SMALL_RECT();
-            ConsoleWindow.Left = 0;
-            ConsoleWindow.Top = 0;
-            ConsoleWindow.Right = (short)(columns - 1);
-            ConsoleWindow.Bottom = (short)(rows - 1);
-            if (OSUtils.IsWindows)
-            {
-                NativeMethods.SetConsoleWindowInfo(_StdOutputHandle, true, ref ConsoleWindow);
-            }
-            else
-            {
-                try
-                {
-                    Console.SetWindowSize(_ScreenSize.X, _ScreenSize.Y);
-                }
-                catch (NotImplementedException)
-                {
-                    // Can't do that
+                    try
+                    {
+                        Console.SetBufferSize(_ScreenSize.X, _ScreenSize.Y);
+                    }
+                    catch (NotImplementedException)
+                    {
+                        // Can't do that
+                    }
                 }
 
-            }
+                // And make the actual window size match the new buffer size
+                NativeMethods.SMALL_RECT ConsoleWindow = new NativeMethods.SMALL_RECT();
+                ConsoleWindow.Left = 0;
+                ConsoleWindow.Top = 0;
+                ConsoleWindow.Right = (short)(columns - 1);
+                ConsoleWindow.Bottom = (short)(rows - 1);
+                if (OSUtils.IsWindows)
+                {
+                    NativeMethods.SetConsoleWindowInfo(_StdOutputHandle, true, ref ConsoleWindow);
+                }
+                else
+                {
+                    try
+                    {
+                        Console.SetWindowSize(_ScreenSize.X, _ScreenSize.Y);
+                    }
+                    catch (NotImplementedException)
+                    {
+                        // Can't do that
+                    }
 
-            // Update the WindMin/WindMax records
-            WindMin = 0;
-            WindMax = (_ScreenSize.X - 1) | ((_ScreenSize.Y - 1) << 8);
+                }
+
+                // Update the WindMin/WindMax records
+                WindMin = 0;
+                WindMax = (_ScreenSize.X - 1) | ((_ScreenSize.Y - 1) << 8);
+            }
         }
 
         /// <summary>
@@ -1267,36 +1390,42 @@ namespace RandM.RMLib
         /// </summary>
         static public void ShowConsole()
         {
-            if (OSUtils.IsWindows)
+            lock (_Lock)
             {
-                IntPtr hWnd = NativeMethods.GetConsoleWindow();
-                if (hWnd != IntPtr.Zero)
+                if (OSUtils.IsWindows)
                 {
-                    bool b = NativeMethods.ShowWindow(hWnd, NativeMethods.SW_SHOWNORMAL);
+                    IntPtr hWnd = NativeMethods.GetConsoleWindow();
+                    if (hWnd != IntPtr.Zero)
+                    {
+                        bool b = NativeMethods.ShowWindow(hWnd, NativeMethods.SW_SHOWNORMAL);
+                    }
                 }
             }
         }
 
         static public void ShowCursor()
         {
-            if (OSUtils.IsWindows)
+            lock (_Lock)
             {
-                NativeMethods.CONSOLE_CURSOR_INFO CCI;
-                if (NativeMethods.GetConsoleCursorInfo(_StdOutputHandle, out CCI))
+                if (OSUtils.IsWindows)
                 {
-                    CCI.Visible = true;
-                    NativeMethods.SetConsoleCursorInfo(_StdOutputHandle, ref CCI);
+                    NativeMethods.CONSOLE_CURSOR_INFO CCI;
+                    if (NativeMethods.GetConsoleCursorInfo(_StdOutputHandle, out CCI))
+                    {
+                        CCI.Visible = true;
+                        NativeMethods.SetConsoleCursorInfo(_StdOutputHandle, ref CCI);
+                    }
                 }
-            }
-            else
-            {
-                try
+                else
                 {
-                    Console.CursorVisible = true;
-                }
-                catch (NotImplementedException)
-                {
-                    // Can't do that
+                    try
+                    {
+                        Console.CursorVisible = true;
+                    }
+                    catch (NotImplementedException)
+                    {
+                        // Can't do that
+                    }
                 }
             }
         }
@@ -1311,6 +1440,10 @@ namespace RandM.RMLib
         /// <param name="frequency">The frequency of the emitted sound in hertz</param>
         static public void Sound(int frequency)
         {
+            lock (_Lock)
+            {
+                // Not going to implement
+            }
         }
 
         /// <summary>
@@ -1327,17 +1460,20 @@ namespace RandM.RMLib
             get { return _TextAttr; }
             set
             {
-                _TextAttr = value;
-                if (!OSUtils.IsWindows)
+                lock (_Lock)
                 {
-                    try
+                    _TextAttr = value;
+                    if (!OSUtils.IsWindows)
                     {
-                        Console.ForegroundColor = GetConsoleColour(_TextAttr % 16);
-                        Console.BackgroundColor = GetConsoleColour(_TextAttr / 16);
-                    }
-                    catch (NotImplementedException)
-                    {
-                        // Can't do that
+                        try
+                        {
+                            Console.ForegroundColor = GetConsoleColour(_TextAttr % 16);
+                            Console.BackgroundColor = GetConsoleColour(_TextAttr / 16);
+                        }
+                        catch (NotImplementedException)
+                        {
+                            // Can't do that
+                        }
                     }
                 }
             }
@@ -1358,7 +1494,10 @@ namespace RandM.RMLib
         /// <param name="colour">The colour to set the background to</param>
         static public void TextBackground(int colour)
         {
-            TextAttr = (_TextAttr & 0x0F) | ((colour & 0x0F) << 4);
+            lock (_Lock)
+            {
+                TextAttr = (_TextAttr & 0x0F) | ((colour & 0x0F) << 4);
+            }
         }
 
         /// <summary>
@@ -1382,7 +1521,10 @@ namespace RandM.RMLib
         /// <param name="colour">The colour to set the foreground to</param>
         static public void TextColor(int colour)
         {
-            TextAttr = (_TextAttr & 0xF0) | (colour & 0x0F);
+            lock (_Lock)
+            {
+                TextAttr = (_TextAttr & 0xF0) | (colour & 0x0F);
+            }
         }
 
         /// <summary>
@@ -1398,8 +1540,11 @@ namespace RandM.RMLib
         /// <param name="mode"></param>
         static public void TextMode(int mode)
         {
-            LastMode = _TextMode;
-            _TextMode = mode;
+            lock (_Lock)
+            {
+                LastMode = _TextMode;
+                _TextMode = mode;
+            }
         }
 
         /// <summary>
@@ -1411,7 +1556,10 @@ namespace RandM.RMLib
         /// <returns>The 1-based column of the window the cursor is currently in</returns>
         static public int WhereX()
         {
-            return WhereXA() - WindMinX;
+            lock (_Lock)
+            {
+                return WhereXA() - WindMinX;
+            }
         }
 
         /// <summary>
@@ -1423,22 +1571,25 @@ namespace RandM.RMLib
         /// <returns>The 1-based column of the screen the cursor is currently in</returns>
         static public int WhereXA()
         {
-            if (OSUtils.IsWindows)
+            lock (_Lock)
             {
-                NativeMethods.CONSOLE_SCREEN_BUFFER_INFO CSBI = new NativeMethods.CONSOLE_SCREEN_BUFFER_INFO();
-                NativeMethods.GetConsoleScreenBufferInfo(_StdOutputHandle, out CSBI);
-                return CSBI.dwCursorPosition.X + 1;
-            }
-            else
-            {
-                try
+                if (OSUtils.IsWindows)
                 {
-                    return Console.CursorLeft + 1;
+                    NativeMethods.CONSOLE_SCREEN_BUFFER_INFO CSBI = new NativeMethods.CONSOLE_SCREEN_BUFFER_INFO();
+                    NativeMethods.GetConsoleScreenBufferInfo(_StdOutputHandle, out CSBI);
+                    return CSBI.dwCursorPosition.X + 1;
                 }
-                catch (NotImplementedException)
+                else
                 {
-                    // Can't do that
-                    return 1;
+                    try
+                    {
+                        return Console.CursorLeft + 1;
+                    }
+                    catch (NotImplementedException)
+                    {
+                        // Can't do that
+                        return 1;
+                    }
                 }
             }
         }
@@ -1452,7 +1603,10 @@ namespace RandM.RMLib
         /// <returns>The 1-based row of the window the cursor is currently in</returns>
         static public int WhereY()
         {
-            return WhereYA() - WindMinY;
+            lock (_Lock)
+            {
+                return WhereYA() - WindMinY;
+            }
         }
 
         /// <summary>
@@ -1464,22 +1618,25 @@ namespace RandM.RMLib
         /// <returns>The 1-based row of the screen the cursor is currently in</returns>
         static public int WhereYA()
         {
-            if (OSUtils.IsWindows)
+            lock (_Lock)
             {
-                NativeMethods.CONSOLE_SCREEN_BUFFER_INFO CSBI = new NativeMethods.CONSOLE_SCREEN_BUFFER_INFO();
-                NativeMethods.GetConsoleScreenBufferInfo(_StdOutputHandle, out CSBI);
-                return CSBI.dwCursorPosition.Y + 1;
-            }
-            else
-            {
-                try
+                if (OSUtils.IsWindows)
                 {
-                    return Console.CursorTop + 1;
+                    NativeMethods.CONSOLE_SCREEN_BUFFER_INFO CSBI = new NativeMethods.CONSOLE_SCREEN_BUFFER_INFO();
+                    NativeMethods.GetConsoleScreenBufferInfo(_StdOutputHandle, out CSBI);
+                    return CSBI.dwCursorPosition.Y + 1;
                 }
-                catch (NotImplementedException)
+                else
                 {
-                    // Can't do that
-                    return 1;
+                    try
+                    {
+                        return Console.CursorTop + 1;
+                    }
+                    catch (NotImplementedException)
+                    {
+                        // Can't do that
+                        return 1;
+                    }
                 }
             }
         }
@@ -1489,7 +1646,13 @@ namespace RandM.RMLib
         /// </summary>
         static public int WindCols
         {
-            get { return WindMaxX - WindMinX + 1; }
+            get
+            {
+                lock (_Lock)
+                {
+                    return WindMaxX - WindMinX + 1;
+                }
+            }
         }
 
         /// <summary>
@@ -1502,7 +1665,13 @@ namespace RandM.RMLib
         /// </summary>
         static public int WindMaxX
         {
-            get { return (WindMax & 0x00FF); }
+            get
+            {
+                lock (_Lock)
+                {
+                    return (WindMax & 0x00FF);
+                }
+            }
         }
 
         /// <summary>
@@ -1510,7 +1679,13 @@ namespace RandM.RMLib
         /// </summary>
         static public int WindMaxY
         {
-            get { return ((WindMax & 0xFF00) >> 8); }
+            get
+            {
+                lock (_Lock)
+                {
+                    return ((WindMax & 0xFF00) >> 8);
+                }
+            }
         }
 
         /// <summary>
@@ -1523,7 +1698,13 @@ namespace RandM.RMLib
         /// </summary>
         static public int WindMinX
         {
-            get { return (WindMin & 0x00FF); }
+            get
+            {
+                lock (_Lock)
+                {
+                    return (WindMin & 0x00FF);
+                }
+            }
         }
 
         /// <summary>
@@ -1531,7 +1712,13 @@ namespace RandM.RMLib
         /// </summary>
         static public int WindMinY
         {
-            get { return ((WindMin & 0xFF00) >> 8); }
+            get
+            {
+                lock (_Lock)
+                {
+                    return ((WindMin & 0xFF00) >> 8);
+                }
+            }
         }
 
         /// <summary>
@@ -1564,17 +1751,20 @@ namespace RandM.RMLib
         /// <param name="bottom">The 1-based bottom row of the window</param>
         static public void Window(int left, int top, int right, int bottom)
         {
-            if ((left > 0) && (top > 0) && (left <= right) && (top <= bottom))
+            lock (_Lock)
             {
-                left--;
-                top--;
-                right--;
-                bottom--;
-                if ((right < _ScreenSize.X) && (bottom < _ScreenSize.Y))
+                if ((left > 0) && (top > 0) && (left <= right) && (top <= bottom))
                 {
-                    WindMin = left + (top << 8);
-                    WindMax = right + (bottom << 8);
-                    GotoXY(1, 1);
+                    left--;
+                    top--;
+                    right--;
+                    bottom--;
+                    if ((right < _ScreenSize.X) && (bottom < _ScreenSize.Y))
+                    {
+                        WindMin = left + (top << 8);
+                        WindMax = right + (bottom << 8);
+                        GotoXY(1, 1);
+                    }
                 }
             }
         }
@@ -1584,7 +1774,13 @@ namespace RandM.RMLib
         /// </summary>
         static public int WindRows
         {
-            get { return WindMaxY - WindMinY + 1; }
+            get
+            {
+                lock (_Lock)
+                {
+                    return WindMaxY - WindMinY + 1;
+                }
+            }
         }
 
         /// <summary>
@@ -1596,79 +1792,82 @@ namespace RandM.RMLib
         /// <param name="text">The text to print to the screen</param>
         static public void Write(string text)
         {
-            int X = WhereX();
-            int Y = WhereY();
-            StringBuilder Buf = new StringBuilder();
-
-            for (int i = 0; i < text.Length; i++)
+            lock (_Lock)
             {
-                bool DoGoto = false;
+                int X = WhereX();
+                int Y = WhereY();
+                StringBuilder Buf = new StringBuilder();
 
-                if (text[i] == '\b')
+                for (int i = 0; i < text.Length; i++)
                 {
-                    // Backspace, need to flush buffer before moving cursor
-                    FastWrite(Buf.ToString(), WhereXA(), WhereYA(), _TextAttr);
-                    X += Buf.Length;
-                    if (X > 1) X -= 1;
-                    DoGoto = true;
+                    bool DoGoto = false;
 
-                    Buf = new StringBuilder();
-                }
-                else if (text[i] == '\n')
-                {
-                    // Line feed, need to flush buffer before moving cursor
-                    FastWrite(Buf.ToString(), WhereXA(), WhereYA(), _TextAttr);
-                    X += Buf.Length;
-                    Y += 1;
-                    DoGoto = true;
-
-                    Buf = new StringBuilder();
-                }
-                else if (text[i] == '\r')
-                {
-                    // Carriage return, need to flush buffer before moving cursor
-                    FastWrite(Buf.ToString(), WhereXA(), WhereYA(), _TextAttr);
-                    X = 1;
-                    DoGoto = true;
-
-                    Buf = new StringBuilder();
-                }
-                else
-                {
-                    // Append character to buffer
-                    Buf.Append(text[i]);
-
-                    // Check if we've passed the right edge of the window
-                    if ((X + Buf.Length) > WindCols)
+                    if (text[i] == '\b')
                     {
-                        // We have, need to flush buffer before moving cursor
+                        // Backspace, need to flush buffer before moving cursor
                         FastWrite(Buf.ToString(), WhereXA(), WhereYA(), _TextAttr);
-                        Buf = new StringBuilder();
+                        X += Buf.Length;
+                        if (X > 1) X -= 1;
+                        DoGoto = true;
 
-                        X = 1;
+                        Buf = new StringBuilder();
+                    }
+                    else if (text[i] == '\n')
+                    {
+                        // Line feed, need to flush buffer before moving cursor
+                        FastWrite(Buf.ToString(), WhereXA(), WhereYA(), _TextAttr);
+                        X += Buf.Length;
                         Y += 1;
                         DoGoto = true;
+
+                        Buf = new StringBuilder();
                     }
+                    else if (text[i] == '\r')
+                    {
+                        // Carriage return, need to flush buffer before moving cursor
+                        FastWrite(Buf.ToString(), WhereXA(), WhereYA(), _TextAttr);
+                        X = 1;
+                        DoGoto = true;
+
+                        Buf = new StringBuilder();
+                    }
+                    else
+                    {
+                        // Append character to buffer
+                        Buf.Append(text[i]);
+
+                        // Check if we've passed the right edge of the window
+                        if ((X + Buf.Length) > WindCols)
+                        {
+                            // We have, need to flush buffer before moving cursor
+                            FastWrite(Buf.ToString(), WhereXA(), WhereYA(), _TextAttr);
+                            Buf = new StringBuilder();
+
+                            X = 1;
+                            Y += 1;
+                            DoGoto = true;
+                        }
+                    }
+
+                    // Check if we've passed the bottom edge of the window
+                    if (Y > WindRows)
+                    {
+                        // We have, need to scroll the window one line
+                        Y = WindRows;
+                        ScrollUpWindow(1);
+                        DoGoto = true;
+                    }
+
+                    if (DoGoto) GotoXY(X, Y);
                 }
 
-                // Check if we've passed the bottom edge of the window
-                if (Y > WindRows)
+                // Flush remaining text in buffer if we have any
+                if (Buf.Length > 0)
                 {
-                    // We have, need to scroll the window one line
-                    Y = WindRows;
-                    ScrollUpWindow(1);
-                    DoGoto = true;
+                    FastWrite(Buf.ToString(), WhereXA(), WhereYA(), _TextAttr);
+                    X += Buf.Length;
+                    GotoXY(X, Y);
                 }
-
-                if (DoGoto) GotoXY(X, Y);
-            }
-
-            // Flush remaining text in buffer if we have any
-            if (Buf.Length > 0)
-            {
-                FastWrite(Buf.ToString(), WhereXA(), WhereYA(), _TextAttr);
-                X += Buf.Length;
-                GotoXY(X, Y);
             }
         }
 
@@ -1677,7 +1876,10 @@ namespace RandM.RMLib
         /// </summary>
         static public void WriteLn()
         {
-            Write("\r\n");
+            lock (_Lock)
+            {
+                Write("\r\n");
+            }
         }
 
         /// <summary>
@@ -1689,7 +1891,10 @@ namespace RandM.RMLib
         /// <param name="text">The text to print to the screen</param>
         static public void WriteLn(string text)
         {
-            Write(text + "\r\n");
+            lock (_Lock)
+            {
+                Write(text + "\r\n");
+            }
         }
 
         /// <summary>
@@ -1700,30 +1905,33 @@ namespace RandM.RMLib
         /// <returns>True if the size was found and set, False if the size was not available</returns>
         public static bool SetFontSize(int width, int height)
         {
-            if (OSUtils.IsWindows)
+            lock (_Lock)
             {
-                try
+                if (OSUtils.IsWindows)
                 {
-                    NativeMethods.CONSOLE_FONT[] fonts = new NativeMethods.CONSOLE_FONT[NativeMethods.GetNumberOfConsoleFonts()];
-                    if (fonts.Length > 0) NativeMethods.GetConsoleFontInfo(_StdOutputHandle, false, (uint)fonts.Length, fonts);
-
-                    for (int i = 0; i < fonts.Length; i++)
+                    try
                     {
-                        fonts[i].dim = NativeMethods.GetConsoleFontSize(_StdOutputHandle, fonts[i].index);
-                        if ((fonts[i].dim.X == width) && (fonts[i].dim.Y == height))
+                        NativeMethods.CONSOLE_FONT[] fonts = new NativeMethods.CONSOLE_FONT[NativeMethods.GetNumberOfConsoleFonts()];
+                        if (fonts.Length > 0) NativeMethods.GetConsoleFontInfo(_StdOutputHandle, false, (uint)fonts.Length, fonts);
+
+                        for (int i = 0; i < fonts.Length; i++)
                         {
-                            NativeMethods.SetConsoleFont(_StdOutputHandle, fonts[i].index);
-                            return true;
+                            fonts[i].dim = NativeMethods.GetConsoleFontSize(_StdOutputHandle, fonts[i].index);
+                            if ((fonts[i].dim.X == width) && (fonts[i].dim.Y == height))
+                            {
+                                NativeMethods.SetConsoleFont(_StdOutputHandle, fonts[i].index);
+                                return true;
+                            }
                         }
                     }
+                    catch (EntryPointNotFoundException)
+                    {
+                        // Not supported on this version of windows
+                    }
                 }
-                catch (EntryPointNotFoundException)
-                {
-                    // Not supported on this version of windows
-                }
-            }
 
-            return false;
+                return false;
+            }
         }
     }
 
