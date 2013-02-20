@@ -126,6 +126,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AES.cs" />
+    <Compile Include="AmIOnline.cs" />
     <Compile Include="AutoUpdate.cs" />
     <Compile Include="CrtAlignment.cs" />
     <Compile Include="CustomEvents.cs" />
