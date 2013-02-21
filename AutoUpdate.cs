@@ -27,7 +27,7 @@ namespace RandM.RMLib
     static public class AutoUpdate
     {
         static public string Comments { get; set; }
-        static public Uri Url { get; set; }
+        static public string Url { get; set; }
         static public string Version { get; set; }
 
         static public bool Available(Uri updateUrl)
@@ -66,7 +66,7 @@ namespace RandM.RMLib
                         {
                             // Read the version, url, and comments from the latest ini
                             Version = NewIni.ReadString(ProcessUtils.ProductName, "version", ProcessUtils.ProductVersion);
-                            Url = new Uri(NewIni.ReadString(ProcessUtils.ProductName, "URL", ""));
+                            Url = NewIni.ReadString(ProcessUtils.ProductName, "URL", "");
                             int CommentCount = NewIni.ReadInt32(ProcessUtils.ProductName, "comments", 0);
                             if (CommentCount > 0)
                             {
