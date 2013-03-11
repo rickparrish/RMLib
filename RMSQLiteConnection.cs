@@ -138,8 +138,12 @@ namespace RandM.RMLib
         public void Close()
         {
             CloseReader();
-            _Connection.Close();
-            _Connection.Dispose();
+            if (_Connection != null)
+            {
+                _Connection.Close();
+                _Connection.Dispose();
+                _Connection = null;
+            }
         }
 
         private void CloseReader()
