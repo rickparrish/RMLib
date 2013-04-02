@@ -144,6 +144,7 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="SessionCurrentUser.cs" />
+    <Compile Include="SolarCalculator.cs" />
     <Compile Include="UPnP.cs" />
     <Compile Include="WebSocketConnection.cs" />
     <Compile Include="Door.cs" />
