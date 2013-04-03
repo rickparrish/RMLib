@@ -115,6 +115,28 @@ namespace RandM.RMLib
             // If we get here, re-throw the last exception
             throw LastException;
         }
+        
+        static public void FileCopy(string sourceFileName, string destinationFileName)
+        {
+            IOException LastException = null;
+
+            for (int i = 0; i < 5; i++)
+            {
+                try
+                {
+                    File.Copy(sourceFileName, destinationFileName);
+                    return;
+                }
+                catch (IOException ioex)
+                {
+                    LastException = ioex;
+                    Thread.Sleep(1000);
+                }
+            }
+
+            // If we get here, re-throw the last exception
+            throw LastException;
+        }
 
         static public string[] FileReadAllLines(string fileName)
         {
