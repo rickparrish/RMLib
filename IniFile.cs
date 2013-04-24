@@ -44,6 +44,7 @@ namespace RandM.RMLib
         private List<string> _HeaderComment = new List<string>();
         private bool _Modified = false;
         private Dictionary<string, IniFileSection> _Sections = new Dictionary<string, IniFileSection>(StringComparer.OrdinalIgnoreCase);
+        private List<string> _SectionNames = new List<string>();
 
         /// <summary>
         /// Default constructor to load the given INI into memory
@@ -70,7 +71,7 @@ namespace RandM.RMLib
             {
                 // Read in the INI file
                 string FileText = FileUtils.FileReadAllText(fileName, RMEncoding.Ansi);
-                
+
                 // Decrypt the INI file (if necessary)
                 if (password.Length > 0)
                 {
@@ -114,6 +115,7 @@ namespace RandM.RMLib
                                 // It is, so add the new section
                                 CurrentSection = Line.Trim().Substring(1, Line.Trim().Length - 2);
                                 _Sections[CurrentSection] = new IniFileSection(CurrentComment);
+                                _SectionNames.Add(CurrentSection);
                                 CurrentComment = new List<string>();
                             }
                             else
@@ -144,10 +146,11 @@ namespace RandM.RMLib
                 // Ensure the supplied password is valid
                 if (Password.Length > 0)
                 {
-                    if ((_HeaderComment.Count == 0) || (_HeaderComment[0] != INI_FILE_ENCRYPTED_HEADER)) 
+                    if ((_HeaderComment.Count == 0) || (_HeaderComment[0] != INI_FILE_ENCRYPTED_HEADER))
                     {
                         // Password did not properly decrypt the ini file
                         _Sections.Clear();
+                        _SectionNames.Clear();
                         return;
                     }
                 }
@@ -206,7 +209,8 @@ namespace RandM.RMLib
         /// <param name="keyName">The key to remove</param>
         public void DeleteKey(string sectionName, string keyName)
         {
-            if (_Sections.ContainsKey(sectionName)) {
+            if (_Sections.ContainsKey(sectionName))
+            {
                 _Modified |= _Sections[sectionName].DeleteKey(keyName);
                 if (_Modified && AutoSave) Save();
             }
@@ -221,6 +225,16 @@ namespace RandM.RMLib
             if (_Sections.ContainsKey(sectionName))
             {
                 _Sections.Remove(sectionName);
+
+                // Need to do this in a loop since section names are case insensitive, but List<string> is case sensitive
+                foreach (string SectionName in _SectionNames)
+                {
+                    if (sectionName.ToUpper() == SectionName.ToUpper())
+                    {
+                        _SectionNames.Remove(SectionName);
+                    }
+                }
+
                 _Modified = true;
                 if (_Modified && AutoSave) Save();
             }
@@ -233,13 +247,14 @@ namespace RandM.RMLib
         /// If a comment is found at the top of an INI file, it is assumed to be a header comment, and so is not associated with the first section.  This may not be correct behaviour, but the alternative is to associate the first comment with the first section, but then that comment will be removed if the first section is removed, which would be bad if the first comment really was a header comment
         /// </remarks>
         public List<string> HeaderComment
-        { 
-            get { return _HeaderComment; } 
-            set { 
+        {
+            get { return _HeaderComment; }
+            set
+            {
                 _HeaderComment = value;
                 _Modified = true;
                 if (AutoSave) Save();
-            } 
+            }
         }
 
         /// <summary>
@@ -283,13 +298,7 @@ namespace RandM.RMLib
         /// <returns>The sections in the INI</returns>
         public string[] ReadSections()
         {
-            string[] Sections = new string[_Sections.Keys.Count];
-            _Sections.Keys.CopyTo(Sections, 0);
-            for (int i = 0; i < Sections.Length; i++)
-            {
-                Sections[i] = Sections[i];
-            }
-            return Sections;
+            return _SectionNames.ToArray();
         }
 
         /// <summary>
@@ -639,16 +648,17 @@ namespace RandM.RMLib
                 }
                 Lines.Add(""); // A little white space
             }
-            foreach (KeyValuePair<string, IniFileSection> KV in _Sections) {
-                KV.Value.Save(KV.Key, ref Lines);
+            foreach (string SectionName in _SectionNames)
+            {
+                _Sections[SectionName].Save(SectionName, ref Lines);
                 Lines.Add(""); // A bit of white space
             }
 
             string FileText = string.Join("\r\n", Lines.ToArray());
             if (Password.Length > 0) FileText = AES.Encrypt(FileText, Password.GetPlainText(), INI_FILE_SALT);
-            
+
             Directory.CreateDirectory(Path.GetDirectoryName(AFileName));
-            FileUtils.FileWriteAllText(AFileName, FileText);            
+            FileUtils.FileWriteAllText(AFileName, FileText);
         }
 
         /// <summary>
@@ -664,6 +674,7 @@ namespace RandM.RMLib
             {
                 // It doesn't, so we need to create it
                 _Sections[sectionName] = new IniFileSection();
+                _SectionNames.Add(sectionName);
             }
 
             // Update the modified flag
