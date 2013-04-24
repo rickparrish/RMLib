@@ -227,11 +227,11 @@ namespace RandM.RMLib
                 _Sections.Remove(sectionName);
 
                 // Need to do this in a loop since section names are case insensitive, but List<string> is case sensitive
-                foreach (string SectionName in _SectionNames)
+                for (int i = _SectionNames.Count - 1; i >= 0; i--)
                 {
-                    if (sectionName.ToUpper() == SectionName.ToUpper())
+                    if (sectionName.ToUpper() == _SectionNames[i].ToUpper())
                     {
-                        _SectionNames.Remove(SectionName);
+                        _SectionNames.RemoveAt(i);
                     }
                 }
 
