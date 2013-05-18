@@ -8,17 +8,22 @@ namespace RandM.RMLib
         static private string[] _OnlineCheckHosts = { "akamai.com", "baidu.com", "blogspot.com", "cachefly.com", "cdnetworks.com", "cloudflare.com", "facebook.com", "gmail.com", "google.com", "hotmail.com", "linkedin.com", "qq.com", "twitter.com", "wikipedia.org", "wordpress.com", "yahoo.com", "youtube.com" };
         static private int _OnlineCheckIndex = new Random().Next(0, _OnlineCheckHosts.Length);
 
-        public static bool PingNextHost()
+        public static bool PingNextHosts(int tries)
         {
-            int NextHostIndex = 0;
-
-            lock (_Lock)
+            for (int i = 0; i < tries; i++)
             {
-                _OnlineCheckIndex = (++_OnlineCheckIndex % _OnlineCheckHosts.Length);
-                NextHostIndex = _OnlineCheckIndex;
+                int NextHostIndex = 0;
+
+                lock (_Lock)
+                {
+                    _OnlineCheckIndex = (++_OnlineCheckIndex % _OnlineCheckHosts.Length);
+                    NextHostIndex = _OnlineCheckIndex;
+                }
+
+                if (WebUtils.Ping(_OnlineCheckHosts[NextHostIndex], 5000)) return true;
             }
 
-            return WebUtils.Ping(_OnlineCheckHosts[NextHostIndex], 5000);
+            return false;
         }
 
         public static void CheckHosts()
