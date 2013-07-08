@@ -19,6 +19,7 @@
 */
 using System;
 using System.IO;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -115,7 +116,7 @@ namespace RandM.RMLib
             // If we get here, re-throw the last exception
             throw LastException;
         }
-        
+
         static public void FileCopy(string sourceFileName, string destinationFileName)
         {
             IOException LastException = null;
@@ -215,6 +216,14 @@ namespace RandM.RMLib
 
             // If we get here, re-throw the last exception
             throw LastException;
+        }
+
+        public static byte[] GetFileHash(string fileName)
+        {
+            using (FileStream FS = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            {
+                return SHA1.Create().ComputeHash(FS);
+            }
         }
 
         static public long GetFileSize(string fileName)
