@@ -115,7 +115,7 @@ namespace RandM.RMLib
         /// <param name="dir">The directory that the file is stored at</param>
         /// <param name="findData">WIN32_FIND_DATA structure that this
         /// object wraps.</param>
-        internal FileData(string dir, NativeMethods.WIN32_FIND_DATA findData)
+        public FileData(string dir, NativeMethods.WIN32_FIND_DATA findData)
         {
             this.Attributes = findData.dwFileAttributes;
 
@@ -135,12 +135,12 @@ namespace RandM.RMLib
             this.Path = System.IO.Path.Combine(dir, findData.cFileName);
         }
 
-        private static long CombineHighLowInts(uint high, uint low)
+        public static long CombineHighLowInts(uint high, uint low)
         {
             return (((long)high) << 0x20) | low;
         }
 
-        private static DateTime ConvertDateTime(uint high, uint low)
+        public static DateTime ConvertDateTime(uint high, uint low)
         {
             long fileTime = CombineHighLowInts(high, low);
             return DateTime.FromFileTimeUtc(fileTime);
