@@ -287,8 +287,11 @@ namespace RandM.RMLib
         {
             lock (_Lock)
             {
-                ScrollUpWindow(WhereY());
-                ScrollDownWindow(WhereY());
+				// Clear rows before current row
+				ScrollUpWindow(WhereY() - 1);
+				ScrollDownWindow(WhereY() - 1);
+				// Clear start of current row
+				ClrBol();
             }
         }
 
@@ -307,7 +310,7 @@ namespace RandM.RMLib
         {
             lock (_Lock)
             {
-                FastWrite(new string(' ', WindMaxX - WhereX() + 1), WhereXA(), WhereYA(), _TextAttr);
+                FastWrite(new string(' ', (WindMaxX + 1) - WhereX() + 1), WhereXA(), WhereYA(), _TextAttr);
             }
         }
 
@@ -326,8 +329,11 @@ namespace RandM.RMLib
         {
             lock (_Lock)
             {
-                ScrollDownWindow(WindRows - WhereY() + 1);
-                ScrollUpWindow(WindRows - WhereY() + 1);
+				// Clear rows after current row
+				ScrollDownWindow(WindRows - WhereY());
+				ScrollUpWindow(WindRows - WhereY());
+				// Clear rest of current row
+				ClrEol();
             }
         }
 
@@ -410,6 +416,22 @@ namespace RandM.RMLib
             Thread.Sleep(milliseconds);
         }
 
+        static public void DelChar()
+        {
+            DelChar(1);
+        }
+
+        static public void DelChar(int count)
+		{
+            //for (int i = WhereXA(); i <= WindMinX + WindCols - count; i++) {
+            //    FastWrite(_ScreenBuffer[i + count, WhereYA()].AsciiChar.ToString(), i, WhereYA(), _ScreenBuffer[i + count, WhereYA()].Attribute);
+            //}
+            //for (int i = WindMinX + WindCols + 1 - count; i <= WindMinX + WindCols; i++)
+            //{
+            //    FastWrite(" ", i, WhereYA(), _TextAttr); 
+            //}
+		}
+		
         /// <summary>
         /// Deletes the line containing the cursor.
         /// </summary>
@@ -445,7 +467,7 @@ namespace RandM.RMLib
         {
             lock (_Lock)
             {
-                ScrollUpWindow(count);
+                ScrollUpCustom(WindMinX + 1, WhereYA(), WindMaxX + 1, WindMaxY + 1, count, ' ', _TextAttr);
             }
         }
 
@@ -547,6 +569,14 @@ namespace RandM.RMLib
                 }
             }
         }
+
+        static public void FillScreen(char ch)
+		{
+            string Line = new string(ch, ScreenCols);
+			for (int Y = 1; Y <= ScreenRows; Y++) {
+				FastWrite(Line, 1, Y, _TextAttr);
+			}
+		}
 
         /// <summary>
         /// Retrieves the text attribute at the given X/Y coordinate.
@@ -755,6 +785,23 @@ namespace RandM.RMLib
             }
         }
 
+        static public void InsChar(char ch)
+        {
+            InsChar(ch, 1);
+        }
+
+		static public void InsChar(char ch, int count)
+		{
+            //// First make room for the new char(s)
+            //for (int i = WindMinX + WindCols; i >= WhereXA() + count; i--) {
+            //    FastWrite(_ScreenBuffer[i - count, WhereYA()].AsciiChar.ToString(), i, WhereYA(), _ScreenBuffer[i - count, WhereYA()].Attribute);
+            //}
+            //// Then write the new char(s)
+            //for (int i = WhereXA(); i < WhereXA() + count; i++) {
+            //    FastWrite(ch.ToString(), i, WhereYA(), _TextAttr); 
+            //}
+		}
+
         /// <summary>
         /// Inserts an empty line at the cursor position.
         /// </summary>
@@ -794,7 +841,7 @@ namespace RandM.RMLib
         {
             lock (_Lock)
             {
-                ScrollDownWindow(count);
+                ScrollDownCustom(WindMinX + 1, WhereYA(), WindMaxX + 1, WindMaxY + 1, count, ' ', _TextAttr);
             }
         }
 
