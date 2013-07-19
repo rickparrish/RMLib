@@ -731,6 +731,11 @@ namespace RandM.RMLib
             }
         }
 
+        static public bool StripLF
+        {
+            set { if (!Local()) _Connection.StripLF = value; }
+        }
+
         static public void SysopChat()
         {
             char? Ch = null;
