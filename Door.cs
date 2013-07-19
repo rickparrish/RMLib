@@ -74,6 +74,8 @@ namespace RandM.RMLib
             Session.EventsTime = DateTime.Now;
             Session.MaxIdle = 300;
             Session.TimeOn = DateTime.Now;
+
+            LocalEcho = false;
         }
 
         /// <summary>
@@ -493,6 +495,8 @@ namespace RandM.RMLib
             return (DropInfo.SocketHandle == -1);
         }
 
+        static public bool LocalEcho { get; set; }
+
         static public void More()
         {
             string Line = "";
@@ -603,6 +607,18 @@ namespace RandM.RMLib
             {
                 LastKey.Ch = (char)Ch;
                 LastKey.Time = DateTime.Now;
+
+                if (LocalEcho)
+                {
+                    if (Ch == '\x08') // Backspace
+                    {
+                        Crt.Write("\x08 \x08");
+                    }
+                    else if ((Ch >= 32) && (Ch <= 126))
+                    {
+                        Crt.Write(Ch.ToString());
+                    }
+                }
             }
 
             return Ch;
