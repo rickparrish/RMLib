@@ -18,6 +18,7 @@
   along with RMLib.  If not, see <http://www.gnu.org/licenses/>.
 */
 using System;
+using System.Net.Sockets;
 using System.Text;
 
 namespace RandM.RMLib
@@ -34,8 +35,19 @@ namespace RandM.RMLib
         const byte RLS_S1 = 3;    // Received first "s" character
         const byte RLS_SS = 5;    // Received second "s" character.  Transmitting screensize info
 
+        private bool _ExpectHeader = true;
         private Int32 _RLoginSSBytes = 0;
         private Int32 _RLoginState = RLS_DATA;
+
+        public RLoginConnection() : this(true) { }
+
+        public RLoginConnection(bool expectHeader)
+            : base()
+        {
+            _ExpectHeader = expectHeader;
+        }
+
+        public string ClientUserName { get; private set; }
 
         protected override void InitSocket()
         {
@@ -109,5 +121,46 @@ namespace RandM.RMLib
                 }
             }
         }
+
+        public override bool Open(Socket socket)
+        {
+            if (base.Open(socket))
+            {
+                if (_ExpectHeader)
+                {
+                    return ParseHeader();
+                }
+                else
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private bool ParseHeader()
+        {
+            // Get the 4 null terminated strings
+            string NullByte = ReadLn("\0", 5000);
+            if (ReadTimedOut) return false;
+
+            ClientUserName = ReadLn("\0", 5000);
+            if (string.IsNullOrEmpty(ClientUserName)) return false;
+            
+            ServerUserName = ReadLn("\0", 5000);
+            if (string.IsNullOrEmpty(ServerUserName)) return false;
+            
+            TerminalType = ReadLn("\0", 5000);
+            if (string.IsNullOrEmpty(TerminalType)) return false;
+
+            Write("\0");
+
+            return true;
+        }
+
+        public string ServerUserName { get; private set; }
+
+        public string TerminalType { get; private set; }
     }
 }
