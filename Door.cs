@@ -612,11 +612,11 @@ namespace RandM.RMLib
                 {
                     if (Ch == '\x08') // Backspace
                     {
-                        Crt.Write("\x08 \x08");
+                        Write("\x08 \x08");
                     }
                     else if ((Ch >= 32) && (Ch <= 126))
                     {
-                        Crt.Write(Ch.ToString());
+                        Write(Ch.ToString());
                     }
                 }
             }
