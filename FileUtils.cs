@@ -58,13 +58,18 @@ namespace RandM.RMLib
 
         static public void FileAppendAllText(string fileName, string text)
         {
+            FileAppendAllText(fileName, text, Encoding.Default);
+        }
+
+        static public void FileAppendAllText(string fileName, string text, Encoding encoding)
+        {
             IOException LastException = null;
 
             for (int i = 0; i < 5; i++)
             {
                 try
                 {
-                    File.AppendAllText(fileName, text);
+                    File.AppendAllText(fileName, text, encoding);
                     return;
                 }
                 catch (IOException ioex)
