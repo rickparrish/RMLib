@@ -614,6 +614,10 @@ namespace RandM.RMLib
                     {
                         Write("\x08 \x08");
                     }
+                    else if (Ch == '\r') // Enter
+                    {
+                        Write("\r\n");
+                    }
                     else if ((Ch >= 32) && (Ch <= 126))
                     {
                         Write(Ch.ToString());

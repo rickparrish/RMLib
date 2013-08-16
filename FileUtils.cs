@@ -191,6 +191,33 @@ namespace RandM.RMLib
             throw LastException;
         }
 
+        static public void FileWriteAllLines(string fileName, string[] lines)
+        {
+            FileWriteAllLines(fileName, lines, Encoding.Default);
+        }
+
+        static public void FileWriteAllLines(string fileName, string[] lines, Encoding encoding)
+        {
+            IOException LastException = null;
+
+            for (int i = 0; i < 5; i++)
+            {
+                try
+                {
+                    File.WriteAllLines(fileName, lines, encoding);
+                    return;
+                }
+                catch (IOException ioex)
+                {
+                    LastException = ioex;
+                    Thread.Sleep(1000);
+                }
+            }
+
+            // If we get here, re-throw the last exception
+            throw LastException;
+        }
+
         static public void FileWriteAllText(string fileName, string text)
         {
             FileWriteAllText(fileName, text, Encoding.Default);
@@ -204,7 +231,7 @@ namespace RandM.RMLib
             {
                 try
                 {
-                    File.WriteAllText(fileName, text);
+                    File.WriteAllText(fileName, text, encoding);
                     return;
                 }
                 catch (IOException ioex)
