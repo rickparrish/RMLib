@@ -191,6 +191,24 @@ namespace RandM.RMLib
             }
         }
 
+        static public string PadBoth(string text, char padCharacter, int padToLength)
+        {
+            if (text.Length == padToLength)
+            {
+                return text;
+            }
+            else if (text.Length > padToLength)
+            {
+                return text.Substring(text.Length - padToLength, padToLength);
+            }
+            else
+            {
+                int Left = (padToLength - text.Length) / 2;
+                int Right = padToLength - text.Length - Left;
+                return new string(padCharacter, Left) + text + new string(padCharacter, Right);
+            }
+        }
+
         static public string PadLeft(string text, char padCharacter, int padToLength)
         {
             if (text.Length == padToLength)
