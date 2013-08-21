@@ -22,6 +22,7 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace RandM.RMLib
 {
@@ -76,6 +77,8 @@ namespace RandM.RMLib
             Session.TimeOn = DateTime.Now;
 
             LocalEcho = false;
+            PipeWrite = true;
+            SethWrite = false;
         }
 
         /// <summary>
@@ -567,6 +570,8 @@ namespace RandM.RMLib
             return AText;
         }
 
+        static public bool PipeWrite { get; set; }
+
         static public char? ReadKey()
         {
             char? Ch = null;
@@ -633,6 +638,8 @@ namespace RandM.RMLib
             return Input("", CharacterMask.All, '\0', 50, 50, 7);
         }
 
+        static public bool SethWrite { get; set; }
+
         static public void Shutdown()
         {
             if (!Local()) _Connection.Close();
@@ -695,7 +702,7 @@ namespace RandM.RMLib
                 DropInfo.SocketHandle = Socket;
                 DropInfo.Node = Node;
             }
-            else if (!string.IsNullOrEmpty(DropFile ))
+            else if (!string.IsNullOrEmpty(DropFile))
             {
                 int SleepLoops = 0;
                 while ((SleepLoops++ < 5) && (!File.Exists(DropFile)))
@@ -754,6 +761,46 @@ namespace RandM.RMLib
         static public bool StripLF
         {
             set { if (!Local()) _Connection.StripLF = value; }
+        }
+
+        static public string StripSeth(string text)
+        {
+            if (text.Contains("`"))
+            {
+                text = Regex.Replace(text, "`1", "", RegexOptions.IgnoreCase);
+                text = Regex.Replace(text, "`2", "", RegexOptions.IgnoreCase);
+                text = Regex.Replace(text, "`3", "", RegexOptions.IgnoreCase);
+                text = Regex.Replace(text, "`4", "", RegexOptions.IgnoreCase);
+                text = Regex.Replace(text, "`5", "", RegexOptions.IgnoreCase);
+                text = Regex.Replace(text, "`6", "", RegexOptions.IgnoreCase);
+                text = Regex.Replace(text, "`7", "", RegexOptions.IgnoreCase);
+                text = Regex.Replace(text, "`8", "", RegexOptions.IgnoreCase);
+                text = Regex.Replace(text, "`9", "", RegexOptions.IgnoreCase);
+                text = Regex.Replace(text, "`0", "", RegexOptions.IgnoreCase);
+                text = Regex.Replace(text, "`[!]", "", RegexOptions.IgnoreCase);
+                text = Regex.Replace(text, "`[@]", "", RegexOptions.IgnoreCase);
+                text = Regex.Replace(text, "`[#]", "", RegexOptions.IgnoreCase);
+                text = Regex.Replace(text, "`[$]", "", RegexOptions.IgnoreCase);
+                text = Regex.Replace(text, "`[%]", "", RegexOptions.IgnoreCase);
+                text = Regex.Replace(text, "`b", "", RegexOptions.IgnoreCase);
+                text = Regex.Replace(text, "`c", "", RegexOptions.IgnoreCase);
+                text = Regex.Replace(text, "`k", "", RegexOptions.IgnoreCase);
+                text = Regex.Replace(text, "`l", "", RegexOptions.IgnoreCase);
+                text = Regex.Replace(text, "`w", "", RegexOptions.IgnoreCase);
+                text = Regex.Replace(text, "`[\\\\]", "", RegexOptions.IgnoreCase);
+                text = Regex.Replace(text, "`[|]", "", RegexOptions.IgnoreCase);
+                text = Regex.Replace(text, "`[.]", "", RegexOptions.IgnoreCase);
+                text = Regex.Replace(text, "`r0", "", RegexOptions.IgnoreCase);
+                text = Regex.Replace(text, "`r1", "", RegexOptions.IgnoreCase);
+                text = Regex.Replace(text, "`r2", "", RegexOptions.IgnoreCase);
+                text = Regex.Replace(text, "`r3", "", RegexOptions.IgnoreCase);
+                text = Regex.Replace(text, "`r4", "", RegexOptions.IgnoreCase);
+                text = Regex.Replace(text, "`r5", "", RegexOptions.IgnoreCase);
+                text = Regex.Replace(text, "`r6", "", RegexOptions.IgnoreCase);
+                text = Regex.Replace(text, "`r7", "", RegexOptions.IgnoreCase);
+            }
+
+            return text;
         }
 
         static public void SysopChat()
@@ -827,10 +874,192 @@ namespace RandM.RMLib
 
         static public void Write(string text)
         {
-            if (text.Contains("|")) text = PipeToAnsi(text);
+            if (PipeWrite && (text.Contains("|"))) text = PipeToAnsi(text);
 
-            Ansi.Write(text);
-            if (!Local()) _Connection.Write(text);
+            if (SethWrite && (text.Contains("`")))
+            {
+                while (text.Length > 0)
+                {
+                    // Write everything up to the next backtick
+                    if (!text.StartsWith("`"))
+                    {
+                        if (text.Contains("`"))
+                        {
+                            string BeforeBackTick = text.Substring(0, text.IndexOf('`'));
+                            Ansi.Write(BeforeBackTick);
+                            if (!Local()) _Connection.Write(BeforeBackTick);
+                            text = text.Substring(BeforeBackTick.Length);
+                        }
+                        else
+                        {
+                            Ansi.Write(text);
+                            if (!Local()) _Connection.Write(text);
+                            text = "";
+                        }
+                    }
+
+                    // Now we have a backtick at the beginning of the string
+                    while (text.StartsWith("`"))
+                    {
+                        string BackTick2 = (text.Length >= 2 ? text.Substring(0, 2) : "");
+                        switch (BackTick2.ToLower())
+                        {
+                            case "``":
+                                Ansi.Write("`");
+                                if (!Local()) _Connection.Write("`");
+                                text = text.Substring(2);
+                                break;
+                            case "`1":
+                                Door.TextColor(Crt.Blue);
+                                text = text.Substring(2);
+                                break;
+                            case "`2":
+                                Door.TextColor(Crt.Green);
+                                text = text.Substring(2);
+                                break;
+                            case "`3":
+                                Door.TextColor(Crt.Cyan);
+                                text = text.Substring(2);
+                                break;
+                            case "`4":
+                                Door.TextColor(Crt.Red);
+                                text = text.Substring(2);
+                                break;
+                            case "`5":
+                                Door.TextColor(Crt.Magenta);
+                                text = text.Substring(2);
+                                break;
+                            case "`6":
+                                Door.TextColor(Crt.Brown);
+                                text = text.Substring(2);
+                                break;
+                            case "`7":
+                                Door.TextColor(Crt.LightGray);
+                                text = text.Substring(2);
+                                break;
+                            case "`8":
+                                Door.TextColor(Crt.White); // Supposed to be dark gray, but a bug has this as white (TODO Check if this is still accurate)
+                                text = text.Substring(2);
+                                break;
+                            case "`9":
+                                Door.TextColor(Crt.LightBlue);
+                                text = text.Substring(2);
+                                break;
+                            case "`0":
+                                Door.TextColor(Crt.LightGreen);
+                                text = text.Substring(2);
+                                break;
+                            case "`!":
+                                Door.TextColor(Crt.LightCyan);
+                                text = text.Substring(2);
+                                break;
+                            case "`@":
+                                Door.TextColor(Crt.LightRed);
+                                text = text.Substring(2);
+                                break;
+                            case "`#":
+                                Door.TextColor(Crt.LightMagenta);
+                                text = text.Substring(2);
+                                break;
+                            case "`$":
+                                Door.TextColor(Crt.Yellow);
+                                text = text.Substring(2);
+                                break;
+                            case "`%":
+                                Door.TextColor(Crt.White);
+                                text = text.Substring(2);
+                                break;
+                            case "`b": // TODO Case sensitive?
+                                // TODO
+                                text = text.Substring(2);
+                                break;
+                            case "`c": // TODO Case sensitive?
+                                Door.TextAttr(7);
+                                Door.ClrScr();
+                                Ansi.Write("\r\n\r\n");
+                                if (!Local()) _Connection.Write("\r\n\r\n");
+                                text = text.Substring(2);
+                                break;
+                            case "`k": // TODO Case sensitive?
+                                Door.Write("  `2<`0MORE`2>");
+                                Door.ReadKey();
+                                Door.Write("\b\b\b\b\b\b\b\b        \b\b\b\b\b\b\b\b");
+                                text = text.Substring(2);
+                                break;
+                            case "`l": // TODO Case sensitive?
+                                Crt.Delay(500);
+                                text = text.Substring(2);
+                                break;
+                            case "`w": // TODO Case sensitive?
+                                Crt.Delay(100);
+                                text = text.Substring(2);
+                                break;
+                            case "`\\":
+                                Ansi.Write("\r\n");
+                                if (!Local()) _Connection.Write("\r\n");
+                                text = text.Substring(2);
+                                break;
+                            case "`|":
+                                // TODO Unknown what this does, but it's used once in LORD2
+                                text = text.Substring(2);
+                                break;
+                            case "`.":
+                                // TODO Also unknown, used by RTNEWS
+                                text = text.Substring(2);
+                                break;
+                            default:
+                                string BackTick3 = (text.Length >= 3 ? text.Substring(0, 3) : "");
+                                switch (BackTick3.ToLower())
+                                {
+                                    case "`r0":
+                                        Door.TextBackground(Crt.Black);
+                                        text = text.Substring(3);
+                                        break;
+                                    case "`r1":
+                                        Door.TextBackground(Crt.Blue);
+                                        text = text.Substring(3);
+                                        break;
+                                    case "`r2":
+                                        Door.TextBackground(Crt.Green);
+                                        text = text.Substring(3);
+                                        break;
+                                    case "`r3":
+                                        Door.TextBackground(Crt.Cyan);
+                                        text = text.Substring(3);
+                                        break;
+                                    case "`r4":
+                                        Door.TextBackground(Crt.Red);
+                                        text = text.Substring(3);
+                                        break;
+                                    case "`r5":
+                                        Door.TextBackground(Crt.Magenta);
+                                        text = text.Substring(3);
+                                        break;
+                                    case "`r6":
+                                        Door.TextBackground(Crt.Brown);
+                                        text = text.Substring(3);
+                                        break;
+                                    case "`r7":
+                                        Door.TextBackground(Crt.LightGray);
+                                        text = text.Substring(3);
+                                        break;
+                                    default:
+                                        // No match, so output the backtick
+                                        Ansi.Write("`");
+                                        if (!Local()) _Connection.Write("`");
+                                        text = text.Substring(1);
+                                        break;
+                                }
+                                break;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                Ansi.Write(text);
+                if (!Local()) _Connection.Write(text);
+            }
         }
 
         /// <summary>
