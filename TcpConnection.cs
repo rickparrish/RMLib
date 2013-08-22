@@ -27,6 +27,10 @@ using System.Text;
 using System.Threading;
 using System.Globalization;
 
+// If linux needs to be pinvoked, here's a sample:
+//[DllImport("libc")]
+//private extern static int send(IntPtr sock, byte[] buf, int count, SocketFlags flags);
+
 namespace RandM.RMLib
 {
     public class TcpConnection : IDisposable
@@ -491,8 +495,10 @@ namespace RandM.RMLib
             }
             else
             {
+                Crt.ClrScr(); // TODO
                 try
                 {
+                    /* Old method
                     SocketInformation SI = new SocketInformation();
                     SI.Options = SocketInformationOptions.Connected;
                     SI.ProtocolInformation = new byte[24];
@@ -508,7 +514,45 @@ namespace RandM.RMLib
                     Array.Copy(B3, 0, SI.ProtocolInformation, 8, B3.Length);
                     Array.Copy(B4, 0, SI.ProtocolInformation, 12, B4.Length);
                     Array.Copy(B5, 0, SI.ProtocolInformation, 16, B5.Length);
+                    */
 
+                    SocketInformation SI = new SocketInformation();
+                    SI.Options = SocketInformationOptions.Connected;
+                    SI.ProtocolInformation = new byte[24];
+
+                    Int32 AF = (Int32)AddressFamily.InterNetwork;
+                    Int32 ST = (Int32)SocketType.Stream;
+                    Int32 PT = (Int32)ProtocolType.Tcp;
+                    Int32 Bound = 0;
+                    Int64 Socket = (Int64)ASocketHandle;
+                    unsafe
+                    {
+                        fixed (byte* target = &SI.ProtocolInformation[0])
+                        {
+                            uint* source = (uint*)&AF;
+                            *((uint*)target) = *source;
+                        }
+                        fixed (byte* target = &SI.ProtocolInformation[4])
+                        {
+                            uint* source = (uint*)&ST;
+                            *((uint*)target) = *source;
+                        }
+                        fixed (byte* target = &SI.ProtocolInformation[8])
+                        {
+                            uint* source = (uint*)&PT;
+                            *((uint*)target) = *source;
+                        }
+                        fixed (byte* target = &SI.ProtocolInformation[12])
+                        {
+                            uint* source = (uint*)&Bound;
+                            *((uint*)target) = *source;
+                        }
+                        fixed (byte* target = &SI.ProtocolInformation[16])
+                        {
+                            long* source = (long*)&Socket;
+                            *((long*)target) = *source;
+                        }
+                    }
                     return Open(new Socket(SI));
                 }
                 catch (SocketException sex)
@@ -817,10 +861,13 @@ namespace RandM.RMLib
                 catch (SocketException sex)
                 {
                     if ((sex.Message == "An established connection was aborted by the software in your host machine") ||
-                        (sex.Message == "An existing connection was forcibly closed by the remote host")) {
+                        (sex.Message == "An existing connection was forcibly closed by the remote host"))
+                    {
                         // Apparently we have a disconnect
                         _Socket.Close();
-                    } else {
+                    }
+                    else
+                    {
                         throw;
                     }
                 }

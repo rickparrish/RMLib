@@ -666,7 +666,7 @@ namespace RandM.RMLib
                             if (!int.TryParse(S, out DropInfo.ComType)) DropInfo.ComType = 0;
                             break;
                         case 'D':
-                            DropFile = S.ToUpper();
+                            DropFile = S;
                             break;
                         case 'H':
                             if (!int.TryParse(S, out Socket)) Socket = -1;
@@ -712,11 +712,11 @@ namespace RandM.RMLib
 
                 if (File.Exists(DropFile))
                 {
-                    if (DropFile.IndexOf("DOOR32.SYS") != -1)
+                    if (DropFile.ToUpper().IndexOf("DOOR32.SYS") != -1)
                     {
                         ReadDoor32(DropFile);
                     }
-                    else if (DropFile.IndexOf("INFO.") != -1)
+                    else if (DropFile.ToUpper().IndexOf("INFO.") != -1)
                     {
                         ReadInfo(DropFile);
                     }
@@ -980,6 +980,11 @@ namespace RandM.RMLib
                                 if (!Local()) _Connection.Write("\r\n\r\n");
                                 text = text.Substring(2);
                                 break;
+                            case "`d": // TODO Case sensitive?
+                                Ansi.Write("\x08");
+                                if (!Local()) _Connection.Write("\x08");
+                                text = text.Substring(2);
+                                break;
                             case "`k": // TODO Case sensitive?
                                 Door.Write("  `2<`0MORE`2>");
                                 Door.ReadKey();
@@ -992,6 +997,11 @@ namespace RandM.RMLib
                                 break;
                             case "`w": // TODO Case sensitive?
                                 Crt.Delay(100);
+                                text = text.Substring(2);
+                                break;
+                            case "`x": // TODO Case sensitive?
+                                Ansi.Write(" ");
+                                if (!Local()) _Connection.Write(" ");
                                 text = text.Substring(2);
                                 break;
                             case "`\\":
