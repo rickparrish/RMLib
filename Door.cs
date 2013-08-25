@@ -255,9 +255,12 @@ namespace RandM.RMLib
                 }
 
                 // Update Status Bar
-                if (OnStatusBar != null)
+                if (OSUtils.IsWindows)
                 {
-                    OnStatusBar();
+                    if (OnStatusBar != null)
+                    {
+                        OnStatusBar();
+                    }
                 }
 
                 Session.EventsTime = DateTime.Now;
@@ -735,6 +738,13 @@ namespace RandM.RMLib
             else if (OnUsage != null)
             {
                 OnUsage();
+            }
+
+            if (!OSUtils.IsWindows)
+            {
+                Local = true;
+                DropInfo.ComType = 0;
+                DropInfo.SocketHandle = -1;
             }
 
             if (!Local)
