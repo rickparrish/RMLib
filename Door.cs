@@ -792,11 +792,14 @@ namespace RandM.RMLib
                 text = Regex.Replace(text, "`[#]", "", RegexOptions.IgnoreCase);
                 text = Regex.Replace(text, "`[$]", "", RegexOptions.IgnoreCase);
                 text = Regex.Replace(text, "`[%]", "", RegexOptions.IgnoreCase);
+                text = Regex.Replace(text, "`[*]", "", RegexOptions.IgnoreCase);
                 text = Regex.Replace(text, "`b", "", RegexOptions.IgnoreCase);
                 text = Regex.Replace(text, "`c", "", RegexOptions.IgnoreCase);
+                text = Regex.Replace(text, "`d", "", RegexOptions.IgnoreCase);
                 text = Regex.Replace(text, "`k", "", RegexOptions.IgnoreCase);
                 text = Regex.Replace(text, "`l", "", RegexOptions.IgnoreCase);
                 text = Regex.Replace(text, "`w", "", RegexOptions.IgnoreCase);
+                text = Regex.Replace(text, "`x", "", RegexOptions.IgnoreCase);
                 text = Regex.Replace(text, "`[\\\\]", "", RegexOptions.IgnoreCase);
                 text = Regex.Replace(text, "`[|]", "", RegexOptions.IgnoreCase);
                 text = Regex.Replace(text, "`[.]", "", RegexOptions.IgnoreCase);
@@ -977,6 +980,10 @@ namespace RandM.RMLib
                                 break;
                             case "`%":
                                 Door.TextColor(Crt.White);
+                                text = text.Substring(2);
+                                break;
+                            case "`*":
+                                Door.TextColor(Crt.Black);
                                 text = text.Substring(2);
                                 break;
                             case "`b": // TODO Case sensitive?
