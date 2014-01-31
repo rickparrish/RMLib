@@ -75,7 +75,14 @@ namespace RandM.RMLib
                             {
                                 // Parse out this line "LOCATION: http://192.168.0.1:5000/rootDesc.xml", trimming the leading "LOCATION:" text
                                 string Location = ResponseText.Substring("location:".Length + ResponseText.IndexOf("location", StringComparison.OrdinalIgnoreCase)).Split('\n')[0].Trim();
-                                if (Location.ToLower().StartsWith("http://")) return Location;
+                                if (Location.ToLower().StartsWith("http://"))
+                                {
+                                    // Ensure we're not dealing with an IPv6 url (TODO Can we support this later?)
+                                    if (!Location.ToLower().StartsWith("http://["))
+                                    {
+                                        return Location;
+                                    }
+                                }
                             }
                         }
                     }
