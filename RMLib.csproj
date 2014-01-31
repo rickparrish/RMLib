@@ -135,6 +135,8 @@
     <Compile Include="ExceptionEmailHelper.cs" />
     <Compile Include="FastDirectoryEnumerator.cs" />
     <Compile Include="FlashSocketPolicyServerThread.cs" />
+    <Compile Include="IPCSocketClientThread.cs" />
+    <Compile Include="IPCSocketServerThread.cs" />
     <Compile Include="NAT-PMP.cs" />
     <Compile Include="OSUtils.cs" />
     <Compile Include="ProcessUtils.cs" />
