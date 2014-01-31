@@ -31,7 +31,7 @@ namespace RandM.RMLib
 {
     public class IPCSocketServerThread : RMThread, IDisposable
     {
-        public const byte EndStatement = 0xFF;
+        public const char EndStatement = '\xFF';
 
         public event EventHandler<StringEventArgs> ClientCommandEvent = null;
         public event EventHandler<StringEventArgs> ErrorMessageEvent = null;
@@ -39,13 +39,14 @@ namespace RandM.RMLib
         public event EventHandler<StringEventArgs> MessageEvent = null;
 
         private StringBuilder _Buffer = new StringBuilder();
+        private TcpConnection _ClientConnection = null;
         private bool _Disposed = false;
-        private TcpConnection _ServerConnection = null;
+        private TcpConnection _Listener = null;
 
 
         public IPCSocketServerThread(TcpConnection serverConnection)
         {
-            _ServerConnection = serverConnection;
+            _Listener = serverConnection;
         }
 
         ~IPCSocketServerThread()
@@ -92,30 +93,32 @@ namespace RandM.RMLib
             while (!_Stop)
             {
                 // Accept an incoming control client connection
-                if (_ServerConnection.CanAccept(1000)) // 1 second
+                if (_Listener.CanAccept(1000)) // 1 second
                 {
                     try
                     {
                         RaiseMessageEvent("IPCSocketServer about to accept a client connection");
-                        TcpConnection ClientConnection = _ServerConnection.AcceptTCP();
-                        if (ClientConnection != null)
+                        _ClientConnection = _Listener.AcceptTCP();
+                        if (_ClientConnection != null)
                         {
-                            string Request = ClientConnection.ReadLn("\r\n", false, '\0', 1000);
+                            string Request = _ClientConnection.ReadLn("\r\n", false, '\0', 1000);
                             if (Request == "OK?")
                             {
-                                ClientConnection.WriteLn("OK!");
+                                _ClientConnection.WriteLn("OK!");
 
-                                RaiseMessageEvent("Control server accepted a client connection from " + ClientConnection.GetRemoteIP() + ":" + ClientConnection.GetRemotePort());
+                                RaiseMessageEvent("Control server accepted a client connection from " + _ClientConnection.GetRemoteIP() + ":" + _ClientConnection.GetRemotePort());
 
                                 _Buffer.Length = 0;
-                                while ((!_Stop) && (ClientConnection.Connected))
+                                while ((!_Stop) && (_ClientConnection.Connected))
                                 {
-                                    if (_ServerConnection.CanRead(1000))
+                                    if (_ClientConnection.CanRead(1000))
                                     {
-                                        ParseClientCommands(_ServerConnection.ReadBytes());
+                                        ParseClientCommands(_ClientConnection.ReadString());
                                     }
                                 }
                             }
+
+                            if (_ClientConnection.Connected) _ClientConnection.Close();
                         }
                         else
                         {
@@ -145,7 +148,7 @@ namespace RandM.RMLib
             }
         }
 
-        private void ParseClientCommands(byte[] data)
+        private void ParseClientCommands(string data)
         {
             for (int i = 0; i < data.Length; i++)
             {
@@ -183,6 +186,11 @@ namespace RandM.RMLib
         {
             EventHandler<StringEventArgs> Handler = MessageEvent;
             if (Handler != null) Handler(this, new StringEventArgs(message));
+        }
+
+        public void SendMessage(string command)
+        {
+            _ClientConnection.Write(command + IPCSocketServerThread.EndStatement);
         }
     }
 }

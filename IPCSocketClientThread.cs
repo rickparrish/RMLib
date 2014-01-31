@@ -103,7 +103,7 @@ namespace RandM.RMLib
                         // Check for server message
                         if (_ClientConnection.CanRead(1000))
                         {
-                            ParseServerMessages(_ClientConnection.ReadBytes());
+                            ParseServerMessages(_ClientConnection.ReadString());
                         }
                     }
                 }
@@ -166,7 +166,7 @@ namespace RandM.RMLib
             return null;
         }
 
-        private void ParseServerMessages(byte[] data)
+        private void ParseServerMessages(string data)
         {
             for (int i = 0; i < data.Length; i++)
             {
@@ -204,6 +204,11 @@ namespace RandM.RMLib
         {
             EventHandler<StringEventArgs> Handler = ServerMessageEvent;
             if (Handler != null) Handler(this, new StringEventArgs(message));
+        }
+
+        public void SendCommand(string command)
+        {
+            _ClientConnection.Write(command + IPCSocketServerThread.EndStatement);
         }
     }
 }
