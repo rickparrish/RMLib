@@ -115,7 +115,10 @@ namespace RandM.RMLib
         public const UInt32 WAIT_ABANDONED = 0x00000080;
         public const UInt32 WAIT_OBJECT_0 = 0x00000000;
         public const UInt32 WAIT_TIMEOUT = 0x00000102; 
+        public const int WH_KEYBOARD_LL = 13;
+        public const int WM_KEYDOWN = 0x0100;
         public const int WM_SYSCOMMAND = 274;
+        public const int WM_SYSKEYDOWN = 0x0104;
         #endregion
 
         #region ENUMERATIONS
@@ -462,7 +465,13 @@ namespace RandM.RMLib
         }
         #endregion
 
+        public delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
+
         #region METHODS
+
+        // http://blogs.msdn.com/b/toub/archive/2006/05/03/589423.aspx
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        public static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
 
         [DllImport("kernel32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
@@ -664,10 +673,19 @@ namespace RandM.RMLib
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern bool SetConsoleWindowInfo(IntPtr hConsoleOutput, bool bAbsolute, [In] ref SMALL_RECT lpConsoleWindow);
 
+        // http://blogs.msdn.com/b/toub/archive/2006/05/03/589423.aspx
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        public static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);
+
         // http://pinvoke.net/default.aspx/kernel32.TerminateProcess
         [DllImport("kernel32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool TerminateProcess(IntPtr hProcess, int uExitCode);
+
+        // http://blogs.msdn.com/b/toub/archive/2006/05/03/589423.aspx
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool UnhookWindowsHookEx(IntPtr hhk);
 
         // http://pinvoke.net/default.aspx/kernel32/WriteConsoleOutput.html
         [DllImport("kernel32.dll", SetLastError = true)]
