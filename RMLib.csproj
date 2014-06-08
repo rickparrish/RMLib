@@ -142,9 +142,7 @@
     <Compile Include="ProcessUtils.cs" />
     <Compile Include="RMEncoding.Ansi.cs" />
     <Compile Include="RMEncoding.cs" />
-    <Compile Include="RMProcess.cs">
-      <SubType>Component</SubType>
-    </Compile>
+    <Compile Include="RMProcess.cs" />
     <Compile Include="SessionCurrentUser.cs" />
     <Compile Include="SolarCalculator.cs" />
     <Compile Include="UPnP.cs" />

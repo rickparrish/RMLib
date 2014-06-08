@@ -136,6 +136,19 @@ namespace RandM.RMLib
             }
         }
 
+        public static bool IsValidPort(string port)
+        {
+            int Port = 0;
+            if (int.TryParse(port, out Port))
+            {
+                return ((Port > 0) && (Port <= 65535));
+            }
+            else
+            {
+                return false;
+            }
+        }
+
         /// <summary>
         /// Changes the LF's in a given string to be CR+LF (useful for unix to windows conversions)
         /// </summary>
