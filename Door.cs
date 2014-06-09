@@ -551,6 +551,9 @@ namespace RandM.RMLib
             else
             {
                 _Socket = new RMSocket(DropInfo.SocketHandle);
+                // TODO Set blocking I/O
+                // TODO Send WILL ECHO and WILL BINARY?
+                _Socket.Send(string.Empty);
                 return _Socket.Connected;
             }
         }

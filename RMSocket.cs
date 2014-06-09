@@ -20,8 +20,6 @@ namespace RandM.RMLib
             else
             {
                 SocketHandle = new IntPtr(socketHandle);
-                // TODO Set blocking I/O
-                // TODO Send WILL ECHO and WILL BINARY?
             }
         }
 
