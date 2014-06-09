@@ -102,7 +102,13 @@ namespace RandM.RMLib
                 Crt.ReadKey();
 
             if (!Local())
-                _Socket.Receive();
+            {
+                byte[] Buffer = new byte[65536];
+                while (_Socket.Poll(0, SelectMode.SelectRead))
+                {
+                    _Socket.Receive(Buffer);
+                }
+            }
         }
 
         /// <summary>

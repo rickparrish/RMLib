@@ -8,7 +8,6 @@ namespace RandM.RMLib
     class RMSocket : IDisposable
     {
         private bool _Disposed = false;
-        private byte[] _ReceiveBuffer = new byte[65536];
 
         public RMSocket(int socketHandle)
         {
@@ -20,7 +19,7 @@ namespace RandM.RMLib
             }
             else
             {
-                this.SocketHandle = new IntPtr(socketHandle);
+                SocketHandle = new IntPtr(socketHandle);
                 // TODO Set blocking I/O
                 // TODO Send WILL ECHO and WILL BINARY?
             }
@@ -134,12 +133,6 @@ namespace RandM.RMLib
             }
         }
 
-        public string Receive()
-        {
-            int BytesRead = Receive(_ReceiveBuffer);
-            return RMEncoding.Ansi.GetString(_ReceiveBuffer, 0, BytesRead);
-        }
-
         public int Receive(byte[] buffer)
         {
             if (buffer == null) throw new ArgumentNullException("buffer");
@@ -148,9 +141,9 @@ namespace RandM.RMLib
             {
                 unsafe
                 {
-                    fixed (byte* pData = _ReceiveBuffer)
+                    fixed (byte* pData = buffer)
                     {
-                        int BytesRead = NativeMethods.recv(SocketHandle, new IntPtr(pData), _ReceiveBuffer.Length, SocketFlags.None);
+                        int BytesRead = NativeMethods.recv(SocketHandle, new IntPtr(pData), buffer.Length, SocketFlags.None);
                         if ((SocketError)BytesRead == SocketError.SocketError)
                         {
                             SocketHandle = IntPtr.Zero;
