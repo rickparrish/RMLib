@@ -23,8 +23,10 @@ using System.Text;
 using System.Threading;
 using System.Globalization;
 using System.Text.RegularExpressions;
+using System.Net.Sockets;
 
 // TODO Need to handle telnet/rlogin negotiation
+// TODO Need option to strip LF
 namespace RandM.RMLib
 {
     /// <summary>
@@ -493,7 +495,7 @@ namespace RandM.RMLib
             }
             else
             {
-                return (Crt.KeyPressed() || (_Socket.Available > 0));
+                return (Crt.KeyPressed() || (_Socket.Poll(0, SelectMode.SelectRead)));
             }
         }
 
@@ -595,7 +597,7 @@ namespace RandM.RMLib
                         LastKey.Location = DoorKeyLocation.Local;
                     }
                 }
-                else if ((!Local()) && (_Socket.Available > 0))
+                else if ((!Local()) && (_Socket.Poll(0, SelectMode.SelectRead)))
                 {
                     byte[] Buffer = new byte[1];
                     int NumRead = _Socket.Receive(Buffer);

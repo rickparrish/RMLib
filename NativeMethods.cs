@@ -710,6 +710,11 @@ namespace RandM.RMLib
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern bool ScrollConsoleScreenBuffer(IntPtr hConsoleOutput, [In] ref SMALL_RECT lpScrollRectangle, [In] IntPtr lpClipRectangle, COORD dwDestinationOrigin, [In] ref CHAR_INFO lpFill);
 
+        [DllImport("WS2_32.DLL", SetLastError = true)]
+        public static extern int select([In] int ignoredParameter, [In, Out] IntPtr[] readfds, [In, Out] IntPtr[] writefds, [In, Out] IntPtr[] exceptfds, [In] ref TimeVal timeout);
+        [DllImport("WS2_32.DLL", SetLastError = true)]
+        public static extern int select([In] int ignoredParameter, [In, Out] IntPtr[] readfds, [In, Out] IntPtr[] writefds, [In, Out] IntPtr[] exceptfds, [In] IntPtr nullTimeout);
+
         // http://www.pinvoke.net/default.aspx/ws2_32.send
         [DllImport("Ws2_32.dll")]
         public static extern int send(IntPtr s, IntPtr buf, int len, MsgFlags flags);
