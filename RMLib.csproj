@@ -143,6 +143,7 @@
     <Compile Include="RMEncoding.Ansi.cs" />
     <Compile Include="RMEncoding.cs" />
     <Compile Include="RMProcess.cs" />
+    <Compile Include="RMSocket.cs" />
     <Compile Include="SessionCurrentUser.cs" />
     <Compile Include="SolarCalculator.cs" />
     <Compile Include="UPnP.cs" />

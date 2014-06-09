@@ -458,7 +458,7 @@ namespace RandM.RMLib
             {
                 try
                 {
-                    NativeMethods.WSADATA WSA = new NativeMethods.WSADATA();
+                    NativeMethods.WSAData WSA = new NativeMethods.WSAData();
                     SocketError Result = NativeMethods.WSAStartup((short)0x0202, out WSA);
                     if (Result != SocketError.Success) throw new SocketException(NativeMethods.WSAGetLastError());
 

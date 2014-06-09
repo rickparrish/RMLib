@@ -24,6 +24,7 @@ using System.Threading;
 using System.Globalization;
 using System.Text.RegularExpressions;
 
+// TODO Need to handle telnet/rlogin negotiation
 namespace RandM.RMLib
 {
     /// <summary>
@@ -41,7 +42,7 @@ namespace RandM.RMLib
         static public TMOREPrompts MOREPrompts = new TMOREPrompts();
         static public TSession Session = new TSession();
 
-        static private TcpConnection _Connection;
+        static private RMSocket _Socket;
 
         #region Standard R&M Door functions
 
@@ -87,7 +88,7 @@ namespace RandM.RMLib
         /// <returns>True if local or carrier exists, false if no carrier exists</returns>
         static public bool Carrier
         {
-            get { return (Local() || _Connection.Connected); }
+            get { return (Local() || _Socket.Connected); }
         }
 
         /// <summary>
@@ -99,7 +100,7 @@ namespace RandM.RMLib
                 Crt.ReadKey();
 
             if (!Local())
-                _Connection.ReadString();
+                _Socket.Receive();
         }
 
         /// <summary>
@@ -109,8 +110,8 @@ namespace RandM.RMLib
         {
             if (!Local())
             {
-                _Connection.ShutdownOnClose = true;
-                _Connection.Close();
+                _Socket.Shutdown();
+                _Socket.Close();
             }
 
             DropInfo.SocketHandle = -1;
@@ -492,7 +493,7 @@ namespace RandM.RMLib
             }
             else
             {
-                return (Crt.KeyPressed() || _Connection.CanRead());
+                return (Crt.KeyPressed() || (_Socket.Available > 0));
             }
         }
 
@@ -541,17 +542,8 @@ namespace RandM.RMLib
             }
             else
             {
-                switch (DropInfo.ComType)
-                {
-                    case 2: _Connection = new TelnetConnection(); break;
-                    case 3: _Connection = new RLoginConnection(); break;
-                    case 4: _Connection = new WebSocketConnection(false); break;
-                }
-                _Connection.Open(DropInfo.SocketHandle);
-                _Connection.ShutdownOnClose = false;
-                _Connection.StripLF = true;
-
-                return _Connection.Connected;
+                _Socket = new RMSocket(DropInfo.SocketHandle);
+                return _Socket.Connected;
             }
         }
 
@@ -603,11 +595,16 @@ namespace RandM.RMLib
                         LastKey.Location = DoorKeyLocation.Local;
                     }
                 }
-                else if ((!Local()) && (_Connection.CanRead()))
+                else if ((!Local()) && (_Socket.Available > 0))
                 {
-                    Ch = _Connection.ReadChar(0);
-                    LastKey.Extended = false;
-                    LastKey.Location = DoorKeyLocation.Remote;
+                    byte[] Buffer = new byte[1];
+                    int NumRead = _Socket.Receive(Buffer);
+                    if (NumRead == 1)
+                    {
+                        Ch = (char)Buffer[0];
+                        LastKey.Extended = false;
+                        LastKey.Location = DoorKeyLocation.Remote;
+                    }
                 }
             } while (LastKey.Location == DoorKeyLocation.None);
 
@@ -645,7 +642,7 @@ namespace RandM.RMLib
 
         static public void Shutdown()
         {
-            if (!Local()) _Connection.Close();
+            if (!Local()) _Socket.Close();
         }
 
         static public void Startup(string[] args)
@@ -766,11 +763,6 @@ namespace RandM.RMLib
 
                 ClrScr();
             }
-        }
-
-        static public bool StripLF
-        {
-            set { if (!Local()) _Connection.StripLF = value; }
         }
 
         static public string StripSeth(string text)
@@ -900,13 +892,13 @@ namespace RandM.RMLib
                         {
                             string BeforeBackTick = text.Substring(0, text.IndexOf('`'));
                             Ansi.Write(BeforeBackTick);
-                            if (!Local()) _Connection.Write(BeforeBackTick);
+                            if (!Local()) _Socket.Send(BeforeBackTick);
                             text = text.Substring(BeforeBackTick.Length);
                         }
                         else
                         {
                             Ansi.Write(text);
-                            if (!Local()) _Connection.Write(text);
+                            if (!Local()) _Socket.Send(text);
                             text = "";
                         }
                     }
@@ -919,7 +911,7 @@ namespace RandM.RMLib
                         {
                             case "``":
                                 Ansi.Write("`");
-                                if (!Local()) _Connection.Write("`");
+                                if (!Local()) _Socket.Send("`");
                                 text = text.Substring(2);
                                 break;
                             case "`1":
@@ -994,12 +986,12 @@ namespace RandM.RMLib
                                 Door.TextAttr(7);
                                 Door.ClrScr();
                                 Ansi.Write("\r\n\r\n");
-                                if (!Local()) _Connection.Write("\r\n\r\n");
+                                if (!Local()) _Socket.Send("\r\n\r\n");
                                 text = text.Substring(2);
                                 break;
                             case "`d": // TODO Case sensitive?
                                 Ansi.Write("\x08");
-                                if (!Local()) _Connection.Write("\x08");
+                                if (!Local()) _Socket.Send("\x08");
                                 text = text.Substring(2);
                                 break;
                             case "`k": // TODO Case sensitive?
@@ -1018,12 +1010,12 @@ namespace RandM.RMLib
                                 break;
                             case "`x": // TODO Case sensitive?
                                 Ansi.Write(" ");
-                                if (!Local()) _Connection.Write(" ");
+                                if (!Local()) _Socket.Send(" ");
                                 text = text.Substring(2);
                                 break;
                             case "`\\":
                                 Ansi.Write("\r\n");
-                                if (!Local()) _Connection.Write("\r\n");
+                                if (!Local()) _Socket.Send("\r\n");
                                 text = text.Substring(2);
                                 break;
                             case "`|":
@@ -1073,7 +1065,7 @@ namespace RandM.RMLib
                                     default:
                                         // No match, so output the backtick
                                         Ansi.Write("`");
-                                        if (!Local()) _Connection.Write("`");
+                                        if (!Local()) _Socket.Send("`");
                                         text = text.Substring(1);
                                         break;
                                 }
@@ -1085,7 +1077,7 @@ namespace RandM.RMLib
             else
             {
                 Ansi.Write(text);
-                if (!Local()) _Connection.Write(text);
+                if (!Local()) _Socket.Send(text);
             }
         }
 

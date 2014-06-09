@@ -122,6 +122,63 @@ namespace RandM.RMLib
         #endregion
 
         #region ENUMERATIONS
+        // http://pinvoke.net/default.aspx/ws2_32/Command.html
+        public enum Command : int
+        {
+            /// <summary>
+            /// Use to determine the amount of data pending in the network's input buffer that can be read from socket s.
+            /// </summary>
+            FIONREAD = 1074030207,
+
+            /// <summary>
+            /// The *argp parameter is a pointer to an unsigned long value.
+            /// Set *argp to a nonzero value if the nonblocking mode should be enabled,
+            /// or zero if the nonblocking mode should be disabled.
+            /// </summary>
+            FIONBIO = -2147195266,
+
+            FIOASYNC = 2147195267,
+            SIOCSHIWAT = 2147192064,
+            SIOCGHIWAT = 1074033409,
+            SIOCSLOWAT = 2147192062,
+            SIOCGLOWAT = 1074033411,
+
+            /// <summary>
+            /// Use to determine if all out of band (OOB) data has been read.
+            /// </summary>
+            SIOCATMARK = 1074033415
+        }
+        
+        [Flags]
+        public enum CreateFileAttributes : uint
+        {
+            Readonly = 0x00000001,
+            Hidden = 0x00000002,
+            System = 0x00000004,
+            Directory = 0x00000010,
+            Archive = 0x00000020,
+            Device = 0x00000040,
+            Normal = 0x00000080,
+            Temporary = 0x00000100,
+            SparseFile = 0x00000200,
+            ReparsePoint = 0x00000400,
+            Compressed = 0x00000800,
+            Offline = 0x00001000,
+            NotContentIndexed = 0x00002000,
+            Encrypted = 0x00004000,
+            Write_Through = 0x80000000,
+            Overlapped = 0x40000000,
+            NoBuffering = 0x20000000,
+            RandomAccess = 0x10000000,
+            SequentialScan = 0x08000000,
+            DeleteOnClose = 0x04000000,
+            BackupSemantics = 0x02000000,
+            PosixSemantics = 0x01000000,
+            OpenReparsePoint = 0x00200000,
+            OpenNoRecall = 0x00100000,
+            FirstPipeInstance = 0x00080000
+        }
+
         public enum CreationDisposition : uint
         {
             /// <summary>
@@ -184,36 +241,6 @@ namespace RandM.RMLib
         }
 
         [Flags]
-        public enum CreateFileAttributes : uint
-        {
-            Readonly = 0x00000001,
-            Hidden = 0x00000002,
-            System = 0x00000004,
-            Directory = 0x00000010,
-            Archive = 0x00000020,
-            Device = 0x00000040,
-            Normal = 0x00000080,
-            Temporary = 0x00000100,
-            SparseFile = 0x00000200,
-            ReparsePoint = 0x00000400,
-            Compressed = 0x00000800,
-            Offline = 0x00001000,
-            NotContentIndexed = 0x00002000,
-            Encrypted = 0x00004000,
-            Write_Through = 0x80000000,
-            Overlapped = 0x40000000,
-            NoBuffering = 0x20000000,
-            RandomAccess = 0x10000000,
-            SequentialScan = 0x08000000,
-            DeleteOnClose = 0x04000000,
-            BackupSemantics = 0x02000000,
-            PosixSemantics = 0x01000000,
-            OpenReparsePoint = 0x00200000,
-            OpenNoRecall = 0x00100000,
-            FirstPipeInstance = 0x00080000
-        }
-
-        [Flags]
         public enum FileShare : uint
         {
             /// <summary>
@@ -240,6 +267,49 @@ namespace RandM.RMLib
             Delete = 0x00000004
         }
 
+        public enum MsgFlags : int
+        {
+            MSG_NONE = 0x0,
+
+            /// <summary>
+            /// Processes Out Of Band (OOB) data.
+            /// </summary>
+            MSG_OOB = 0x1,
+
+            /// <summary>
+            /// Peeks at the incoming data. The data is copied into the buffer,
+            /// but is not removed from the input queue.
+            /// </summary>
+            MSG_PEEK = 0x2,
+
+            /// <summary>
+            /// send without using routing tables
+            /// </summary>
+            MSG_DONTROUTE = 0x4,
+
+            /// <summary>
+            /// The receive request will complete only when one of the following events occurs:
+            /// </summary>
+            MSG_WAITALL = 0x8,
+
+            /// <summary>
+            /// partial send or recv for message xport
+            /// </summary>
+            MSG_PARTIAL = 0x8000,
+
+            /// <summary>
+            /// ???? ... ???
+            /// </summary>
+            MSG_DONTWAIT = 0x1000000
+        }
+
+        public enum ShutDownFlags : int
+        {
+            SD_RECEIVE = 0,
+            SD_SEND = 1,
+            SD_BOTH = 2
+        }
+        
         public enum VirtualKeyStates : int
         {
             VK_LBUTTON = 0x01,
@@ -476,7 +546,11 @@ namespace RandM.RMLib
         [DllImport("kernel32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool CloseHandle(IntPtr hObject);
-        
+
+        // http://pinvoke.net/default.aspx/ws2_32/closesocket.html
+        [DllImport("ws2_32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        public static extern int closesocket(IntPtr s);
+
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern IntPtr CreateEvent(IntPtr lpEventAttributes, bool bManualReset, bool bInitialState, string lpName);
 
@@ -586,6 +660,10 @@ namespace RandM.RMLib
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
         public static extern uint GlobalGetAtomName(ushort nAtom, StringBuilder lpBuffer, int nSize);
 
+        // http://pinvoke.net/default.aspx/ws2_32/ioctlsocket.html
+        [DllImport("Ws2_32.dll")]
+        public static extern int ioctlsocket(IntPtr s, Command cmd, ref int argp);
+
         [DllImport("kernel32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool IsWow64Process(IntPtr hProcess, [MarshalAs(UnmanagedType.Bool)] out bool isWow64);
@@ -619,6 +697,10 @@ namespace RandM.RMLib
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern unsafe bool ReadFile(IntPtr hFile, byte* pBuffer, uint nNumberOfBytesToRead, out uint lpNumberOfBytesRead, NativeOverlapped* lpOverlapped);
 
+        // http://pinvoke.net/default.aspx/ws2_32/recv.html
+        [DllImport("Ws2_32.dll")]
+        public static extern int recv(IntPtr s, IntPtr buf, int len, System.Net.Sockets.SocketFlags flags);
+
         [DllImport("user32")]
         public static extern int RegisterWindowMessage(string message);
 
@@ -627,6 +709,10 @@ namespace RandM.RMLib
         public static extern bool ScrollConsoleScreenBuffer(IntPtr hConsoleOutput, [In] ref SMALL_RECT lpScrollRectangle, [In] ref SMALL_RECT lpClipRectangle, COORD dwDestinationOrigin, [In] ref CHAR_INFO lpFill);
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern bool ScrollConsoleScreenBuffer(IntPtr hConsoleOutput, [In] ref SMALL_RECT lpScrollRectangle, [In] IntPtr lpClipRectangle, COORD dwDestinationOrigin, [In] ref CHAR_INFO lpFill);
+
+        // http://www.pinvoke.net/default.aspx/ws2_32.send
+        [DllImport("Ws2_32.dll")]
+        public static extern int send(IntPtr s, IntPtr buf, int len, MsgFlags flags);
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         public static extern Int32 SendMessage(Int32 hWnd, Int32 wMsg, IntPtr wParam, IntPtr lParam);
@@ -643,11 +729,22 @@ namespace RandM.RMLib
         public static extern bool SetConsoleCursorPosition(IntPtr hConsoleOutput, COORD dwCursorPosition);
 
         [DllImport("kernel32")]
+        public extern static bool SetConsoleFont(IntPtr hOutput, uint index);
+
+        [DllImport("kernel32")]
         public static extern bool SetConsoleIcon(IntPtr hIcon);
+
+        // http://pinvoke.net/default.aspx/kernel32/SetConsoleTitle.html
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool SetConsoleTitle(string lpConsoleTitle);
 
         // http://pinvoke.net/default.aspx/kernel32/SetConsoleScreenBufferSize.html
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern bool SetConsoleScreenBufferSize(IntPtr hConsoleOutput, COORD dwSize);
+        
+        // http://pinvoke.net/default.aspx/kernel32/SetConsoleWindowInfo.html
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool SetConsoleWindowInfo(IntPtr hConsoleOutput, bool bAbsolute, [In] ref SMALL_RECT lpConsoleWindow);
 
         [DllImport("kernel32.dll")]
         public static extern bool SetEvent(IntPtr hEvent);
@@ -656,26 +753,19 @@ namespace RandM.RMLib
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool SetForegroundWindow(IntPtr hWnd);
 
+        // http://blogs.msdn.com/b/toub/archive/2006/05/03/589423.aspx
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        public static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);
+
         [DllImport("user32.dll")]
         public static extern int ShowCursor(bool bShow);
 
         [DllImport("user32.dll")]
         public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
-        [DllImport("kernel32")]
-        public extern static bool SetConsoleFont(IntPtr hOutput, uint index);
-
-        // http://pinvoke.net/default.aspx/kernel32/SetConsoleTitle.html
-        [DllImport("kernel32.dll", SetLastError = true)]
-        public static extern bool SetConsoleTitle(string lpConsoleTitle);
-
-        // http://pinvoke.net/default.aspx/kernel32/SetConsoleWindowInfo.html
-        [DllImport("kernel32.dll", SetLastError = true)]
-        public static extern bool SetConsoleWindowInfo(IntPtr hConsoleOutput, bool bAbsolute, [In] ref SMALL_RECT lpConsoleWindow);
-
-        // http://blogs.msdn.com/b/toub/archive/2006/05/03/589423.aspx
-        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        public static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);
+        // http://pinvoke.net/default.aspx/ws2_32/shutdown.html
+        [DllImport("ws2_32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        public static extern int shutdown(IntPtr s, ShutDownFlags how);
 
         // http://pinvoke.net/default.aspx/kernel32.TerminateProcess
         [DllImport("kernel32.dll", SetLastError = true)]
@@ -718,8 +808,9 @@ namespace RandM.RMLib
         [DllImport("WS2_32.DLL", CharSet = CharSet.Auto, SetLastError = true)]
         public static extern int WSAGetLastError();
 
-        [DllImport("WS2_32.DLL", CharSet = CharSet.Ansi, BestFitMapping = false, ThrowOnUnmappableChar = true, SetLastError = true)]
-        public static extern SocketError WSAStartup([In] short wVersionRequested, [Out] out WSADATA lpWSAData);
+        // http://www.pinvoke.net/default.aspx/ws2_32.wsastartup
+        [DllImport("ws2_32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        public static extern SocketError WSAStartup(Int16 wVersionRequested, out WSAData wsaData);
         
         #endregion
 
@@ -950,17 +1041,22 @@ namespace RandM.RMLib
             internal uint[] ChainEntries;       /* a list of dwCatalogEntryIds */
         }
 
-        public struct WSADATA
+        // http://www.pinvoke.net/default.aspx/ws2_32/WSAData.html
+        [StructLayout(LayoutKind.Sequential)]
+        public struct WSAData
         {
-            short wVersion;
-            short wHighVersion;
+            public Int16 version;
+            public Int16 highVersion;
+
             [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 257)]
-            string szDescription;
+            public String description;
+
             [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 129)]
-            string szSystemStatus;
-            short iMaxSockets;
-            short iMaxUdpDg;
-            IntPtr lpVendorInfo;
+            public String systemStatus;
+
+            public Int16 maxSockets;
+            public Int16 maxUdpDg;
+            public IntPtr vendorInfo;
         }
 
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
