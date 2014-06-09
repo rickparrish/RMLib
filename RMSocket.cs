@@ -11,11 +11,18 @@ namespace RandM.RMLib
 
         public RMSocket(int socketHandle)
         {
-            NativeMethods.WSAData WSA = new NativeMethods.WSAData();
-            SocketError Result = NativeMethods.WSAStartup((short)0x0202, out WSA);
-            if (Result != SocketError.Success)
+            if (OSUtils.IsWindows)
             {
-                SocketHandle = IntPtr.Zero;
+                NativeMethods.WSAData WSA = new NativeMethods.WSAData();
+                SocketError Result = NativeMethods.WSAStartup((short)0x0202, out WSA);
+                if (Result != SocketError.Success)
+                {
+                    SocketHandle = IntPtr.Zero;
+                }
+                else
+                {
+                    SocketHandle = new IntPtr(socketHandle);
+                }
             }
             else
             {
@@ -67,7 +74,14 @@ namespace RandM.RMLib
         {
             if (Connected)
             {
-                NativeMethods.closesocket(SocketHandle);
+                if (OSUtils.IsWindows)
+                {
+                    NativeMethods.closesocket(SocketHandle);
+                }
+                else
+                {
+                    NativeMethods.close_libc(SocketHandle.ToInt32());
+                }
                 SocketHandle = IntPtr.Zero;
             }
         }
@@ -84,46 +98,68 @@ namespace RandM.RMLib
         {
             if (Connected)
             {
-                IntPtr[] FDSet = new IntPtr[2] { (IntPtr)1, SocketHandle };
-
-                int Result = 0;
-                if (microSeconds == -1)
+                if (OSUtils.IsWindows)
                 {
-                    // Wait indefinitely
-                    Result = NativeMethods.select(
-                                0,
-                                mode == SelectMode.SelectRead ? FDSet : null,
-                                mode == SelectMode.SelectWrite ? FDSet : null,
-                                mode == SelectMode.SelectError ? FDSet : null,
-                                IntPtr.Zero);
+                    IntPtr[] FDSet = new IntPtr[2] { (IntPtr)1, SocketHandle };
+
+                    int Result = 0;
+                    if (microSeconds == -1)
+                    {
+                        // Wait indefinitely
+                        Result = NativeMethods.select(
+                                    0,
+                                    mode == SelectMode.SelectRead ? FDSet : null,
+                                    mode == SelectMode.SelectWrite ? FDSet : null,
+                                    mode == SelectMode.SelectError ? FDSet : null,
+                                    IntPtr.Zero);
+                    }
+                    else
+                    {
+                        // Wait the specified time
+                        NativeMethods.TimeVal timeout = new NativeMethods.TimeVal();
+                        timeout.Seconds = microSeconds / 1000000;
+                        timeout.Microseconds = microSeconds % 1000000;
+
+                        Result = NativeMethods.select(
+                                    0,
+                                    mode == SelectMode.SelectRead ? FDSet : null,
+                                    mode == SelectMode.SelectWrite ? FDSet : null,
+                                    mode == SelectMode.SelectError ? FDSet : null,
+                                    ref timeout);
+                    }
+
+                    if ((SocketError)Result == SocketError.SocketError)
+                    {
+                        SocketHandle = IntPtr.Zero;
+                        return false;
+                    }
+
+                    if ((int)FDSet[0] == 0)
+                    {
+                        return false;
+                    }
+
+                    return (FDSet[1] == SocketHandle);
                 }
                 else
                 {
-                    // Wait the specified time
-                    NativeMethods.TimeVal timeout = new NativeMethods.TimeVal();
-                    timeout.Seconds = microSeconds / 1000000;
-                    timeout.Microseconds = microSeconds % 1000000;
-
-                    Result = NativeMethods.select(
-                                0,
-                                mode == SelectMode.SelectRead ? FDSet : null,
-                                mode == SelectMode.SelectWrite ? FDSet : null,
-                                mode == SelectMode.SelectError ? FDSet : null,
-                                ref timeout);
+                    unsafe
+                    {
+                        byte[] buffer = new byte[1];
+                        fixed (byte* pData = buffer)
+                        {
+                            int BytesRead = NativeMethods.recv_libc(SocketHandle, pData, buffer.Length, (int)SocketFlags.Peek);
+                            if (BytesRead >= 0)
+                            {
+                                return true;
+                            }
+                            else
+                            {
+                                return false;
+                            }
+                        }
+                    }
                 }
-
-                if ((SocketError)Result == SocketError.SocketError)
-                {
-                    SocketHandle = IntPtr.Zero;
-                    return false;
-                }
-
-                if ((int)FDSet[0] == 0)
-                {
-                    return false;
-                }
-
-                return (FDSet[1] == SocketHandle);
             }
             else
             {
@@ -141,20 +177,36 @@ namespace RandM.RMLib
                 {
                     fixed (byte* pData = buffer)
                     {
-                        int BytesRead = NativeMethods.recv(SocketHandle, new IntPtr(pData), buffer.Length, SocketFlags.None);
-                        if ((SocketError)BytesRead == SocketError.SocketError)
+                        if (OSUtils.IsWindows)
                         {
-                            SocketHandle = IntPtr.Zero;
-                            return 0;
-                        }
-                        else if (BytesRead == 0)
-                        {
-                            SocketHandle = IntPtr.Zero;
-                            return 0;
+                            int BytesRead = NativeMethods.recv(SocketHandle, new IntPtr(pData), buffer.Length, SocketFlags.None);
+                            if ((SocketError)BytesRead == SocketError.SocketError)
+                            {
+                                SocketHandle = IntPtr.Zero;
+                                return 0;
+                            }
+                            else if (BytesRead == 0)
+                            {
+                                SocketHandle = IntPtr.Zero;
+                                return 0;
+                            }
+                            else
+                            {
+                                return BytesRead;
+                            }
                         }
                         else
                         {
-                            return BytesRead;
+                            int BytesRead = NativeMethods.recv_libc(SocketHandle, pData, buffer.Length, 0);
+                            if (BytesRead >= 0)
+                            {
+                                return BytesRead;
+                            }
+                            else
+                            {
+                                SocketHandle = IntPtr.Zero;
+                                return 0;
+                            }
                         }
                     }
                 }
@@ -171,7 +223,14 @@ namespace RandM.RMLib
         {
             if (Connected)
             {
-                NativeMethods.shutdown(SocketHandle, NativeMethods.ShutDownFlags.SD_BOTH);
+                if (OSUtils.IsWindows)
+                {
+                    NativeMethods.shutdown(SocketHandle, NativeMethods.ShutDownFlags.SD_BOTH);
+                }
+                else
+                {
+                    NativeMethods.shutdown_libc(SocketHandle, (int)NativeMethods.ShutDownFlags.SD_BOTH);
+                }
             }
         }
 
@@ -190,20 +249,36 @@ namespace RandM.RMLib
                     {
                         while (TotalBytesSent < SendBuffer.Length)
                         {
-                            int ThisBytesSent = NativeMethods.send(SocketHandle, new IntPtr(pData + TotalBytesSent), SendBuffer.Length, NativeMethods.MsgFlags.MSG_NONE);
-                            if ((SocketError)ThisBytesSent == SocketError.SocketError)
+                            if (OSUtils.IsWindows)
                             {
-                                SocketHandle = IntPtr.Zero;
-                                return TotalBytesSent;
-                            }
-                            else if (ThisBytesSent == 0)
-                            {
-                                SocketHandle = IntPtr.Zero;
-                                return TotalBytesSent;
+                                int ThisBytesSent = NativeMethods.send(SocketHandle, new IntPtr(pData + TotalBytesSent), SendBuffer.Length - TotalBytesSent, NativeMethods.MsgFlags.MSG_NONE);
+                                if ((SocketError)ThisBytesSent == SocketError.SocketError)
+                                {
+                                    SocketHandle = IntPtr.Zero;
+                                    return TotalBytesSent;
+                                }
+                                else if (ThisBytesSent == 0)
+                                {
+                                    SocketHandle = IntPtr.Zero;
+                                    return TotalBytesSent;
+                                }
+                                else
+                                {
+                                    TotalBytesSent += ThisBytesSent;
+                                }
                             }
                             else
                             {
-                                TotalBytesSent += ThisBytesSent;
+                                int ThisBytesSent = NativeMethods.send_libc(SocketHandle, pData + TotalBytesSent, SendBuffer.Length - TotalBytesSent, 0);
+                                if (ThisBytesSent >= 0)
+                                {
+                                    TotalBytesSent += ThisBytesSent;
+                                }
+                                else
+                                {
+                                    SocketHandle = IntPtr.Zero;
+                                    return TotalBytesSent;
+                                }
                             }
                         }
 

@@ -550,6 +550,9 @@ namespace RandM.RMLib
         // http://pinvoke.net/default.aspx/ws2_32/closesocket.html
         [DllImport("ws2_32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern int closesocket(IntPtr s);
+        // https://github.com/mono/dbus-sharp/blob/master/src/Unix/UnixSocket.cs
+        [DllImport("libc", CallingConvention = CallingConvention.Cdecl, SetLastError = true, EntryPoint = "close")]
+        public static extern int close_libc(int fd);
 
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern IntPtr CreateEvent(IntPtr lpEventAttributes, bool bManualReset, bool bInitialState, string lpName);
@@ -700,6 +703,9 @@ namespace RandM.RMLib
         // http://pinvoke.net/default.aspx/ws2_32/recv.html
         [DllImport("Ws2_32.dll")]
         public static extern int recv(IntPtr s, IntPtr buf, int len, System.Net.Sockets.SocketFlags flags);
+        // http://mono-soc-2007.googlecode.com/svn/trunk/brian/FastCgi/src/Mono.FastCgi/SocketAbstractions/UnmanagedSocket.cs
+        [DllImport("libc", SetLastError = true, EntryPoint = "recv")]
+        public unsafe static extern int recv_libc(IntPtr s, byte* buffer, int len, int flags);
 
         [DllImport("user32")]
         public static extern int RegisterWindowMessage(string message);
@@ -718,6 +724,9 @@ namespace RandM.RMLib
         // http://www.pinvoke.net/default.aspx/ws2_32.send
         [DllImport("Ws2_32.dll")]
         public static extern int send(IntPtr s, IntPtr buf, int len, MsgFlags flags);
+        // http://mono-soc-2007.googlecode.com/svn/trunk/brian/FastCgi/src/Mono.FastCgi/SocketAbstractions/UnmanagedSocket.cs
+        [DllImport("libc", SetLastError = true, EntryPoint = "send")]
+        public unsafe static extern int send_libc(IntPtr s, byte* buffer, int len, int flags);
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         public static extern Int32 SendMessage(Int32 hWnd, Int32 wMsg, IntPtr wParam, IntPtr lParam);
@@ -771,6 +780,9 @@ namespace RandM.RMLib
         // http://pinvoke.net/default.aspx/ws2_32/shutdown.html
         [DllImport("ws2_32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern int shutdown(IntPtr s, ShutDownFlags how);
+        // http://mono-soc-2007.googlecode.com/svn/trunk/brian/FastCgi/src/Mono.FastCgi/SocketAbstractions/UnmanagedSocket.cs
+        [DllImport("libc", SetLastError = true, EntryPoint = "shutdown")]
+        public static extern int shutdown_libc(IntPtr s, int how);
 
         // http://pinvoke.net/default.aspx/kernel32.TerminateProcess
         [DllImport("kernel32.dll", SetLastError = true)]
