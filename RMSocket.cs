@@ -21,31 +21,29 @@ namespace RandM.RMLib
 
         public RMSocket(int socketHandle)
         {
+            SocketHandle = new IntPtr(socketHandle);
+            StripLF = false;
+
             if (OSUtils.IsWindows)
             {
                 NativeMethods.WSAData WSA = new NativeMethods.WSAData();
                 SocketError Result = NativeMethods.WSAStartup((short)0x0202, out WSA);
-                if (Result == SocketError.Success)
-                {
-                    SocketHandle = new IntPtr(socketHandle);
-                }
-                else
+                if (Result != SocketError.Success)
                 {
                     SocketHandle = IntPtr.Zero;
                 }
             }
-            else
-            {
-                SocketHandle = new IntPtr(socketHandle);
-            }
 
-            // Start threads
-            _ReadThread = new Thread(new ThreadStart(ReadFunc));
-            _ReadThread.IsBackground = true;
-            _ReadThread.Start();
-            _WriteThread = new Thread(new ThreadStart(WriteFunc));
-            _WriteThread.IsBackground = true;
-            _WriteThread.Start();
+            if (Connected)
+            {
+                // Start threads
+                _ReadThread = new Thread(new ThreadStart(ReadFunc));
+                _ReadThread.IsBackground = true;
+                _ReadThread.Start();
+                _WriteThread = new Thread(new ThreadStart(WriteFunc));
+                _WriteThread.IsBackground = true;
+                _WriteThread.Start();
+            }
         }
 
         ~RMSocket()
@@ -129,9 +127,10 @@ namespace RandM.RMLib
         {
             while (true)
             {
+                _ReadEvent.Reset();
+
                 lock (_ReadLock)
                 {
-
                     if (_ReadQueue.Count > 0)
                     {
                         return _ReadQueue.Peek();
@@ -142,11 +141,13 @@ namespace RandM.RMLib
                 _ReadEvent.WaitOne();
             }
         }
-        
+
         public byte ReadByte()
         {
             while (true)
             {
+                _ReadEvent.Reset();
+
                 lock (_ReadLock)
                 {
                     if (_ReadQueue.Count > 0)
@@ -164,6 +165,7 @@ namespace RandM.RMLib
         {
             int BytesRead = 0;
             byte[] Buffer = new byte[1024];
+            byte LastByte = 0x00;
 
             fixed (byte* pData = Buffer)
             {
@@ -192,11 +194,27 @@ namespace RandM.RMLib
                         {
                             for (int i = 0; i < BytesRead; i++)
                             {
-                                _ReadQueue.Enqueue(Buffer[i]);
+                                if (StripLF && (LastByte == 0x0D) && (Buffer[i] == 0x0A))
+                                {
+                                    // Ignore LF following CR
+                                }
+                                else if (StripNull && (LastByte == 0x0D) && (Buffer[i] == 0x00))
+                                {
+                                    // Ignore NULL following CR
+                                }
+                                else
+                                {
+                                    _ReadQueue.Enqueue(Buffer[i]);
+                                }
+                                LastByte = Buffer[i];
+                            }
+
+                            // Let Read*() know it can read from the queue now
+                            if (_ReadQueue.Count > 0)
+                            {
+                                _ReadEvent.Set();
                             }
                         }
-
-                        _ReadEvent.Set();
                     }
                 }
             }
@@ -230,6 +248,10 @@ namespace RandM.RMLib
             }
         }
 
+        public bool StripLF { get; set; }
+
+        public bool StripNull { get; set; }
+
         public void WriteBytes(byte[] buffer)
         {
             if (buffer == null) throw new ArgumentNullException("buffer");
@@ -242,10 +264,13 @@ namespace RandM.RMLib
                 {
                     _WriteQueue.Enqueue(buffer[i]);
                 }
-            }
 
-            // Tell WriteFunc() that there's data to be sent
-            _WriteEvent.Set();
+                // Tell WriteFunc() that there's data to be sent
+                if (_WriteQueue.Count > 0)
+                {
+                    _WriteEvent.Set();
+                }
+            }
         }
 
         public void WriteString(string text)
@@ -264,6 +289,8 @@ namespace RandM.RMLib
 
             while (Connected)
             {
+                _WriteEvent.Reset();
+
                 lock (_WriteLock)
                 {
                     Buffer = (_WriteQueue.Count > 0) ? _WriteQueue.ToArray() : null;

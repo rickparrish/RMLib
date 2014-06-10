@@ -26,18 +26,17 @@ using System.Text.RegularExpressions;
 using System.Net.Sockets;
 
 // TODO Need to handle telnet/rlogin negotiation
-// TODO Need option to strip LF
 namespace RandM.RMLib
 {
     /// <summary>
     /// Please note that the Door class is not thread safe.  If:
-    ///   1) Anybody every uses this class, and
+    ///   1) Anybody ever uses this class, and
     ///   2) A use-case for a thread safe Door class is presented
     /// then I'll be happy to add the required locking to make it thread safe.
     /// </summary>
     static public class Door
     {
-        public const string _Version = "R&M Door v13.02.19";
+        public const string _Version = "R&M Door v14.06.10";
 
         static public TDropInfo DropInfo = new TDropInfo();
         static public TLastKey LastKey = new TLastKey();
@@ -845,6 +844,50 @@ namespace RandM.RMLib
                 Session.TimeOn = DateTime.Now;
 
                 ClrScr();
+            }
+        }
+
+        static public bool StripLF
+        {
+            get
+            {
+                if (Local())
+                {
+                    return true;
+                }
+                else
+                {
+                    return _Socket.StripLF;
+                }
+            }
+            set
+            {
+                if (!Local())
+                {
+                    _Socket.StripLF = value;
+                }
+            }
+        }
+
+        static public bool StripNull
+        {
+            get
+            {
+                if (Local())
+                {
+                    return true;
+                }
+                else
+                {
+                    return _Socket.StripNull;
+                }
+            }
+            set
+            {
+                if (!Local())
+                {
+                    _Socket.StripNull = value;
+                }
             }
         }
 
