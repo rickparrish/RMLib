@@ -34,20 +34,19 @@ namespace RandM.RMLib
     ///   2) A use-case for a thread safe Door class is presented
     /// then I'll be happy to add the required locking to make it thread safe.
     /// </summary>
-    static public class Door
+    public class RMDoor : IDisposable
     {
-        public const string _Version = "R&M Door v14.06.10";
+        public TDropInfo DropInfo = new TDropInfo();
+        public TLastKey LastKey = new TLastKey();
+        public TMOREPrompts MOREPrompts = new TMOREPrompts();
+        public TSession Session = new TSession();
 
-        static public TDropInfo DropInfo = new TDropInfo();
-        static public TLastKey LastKey = new TLastKey();
-        static public TMOREPrompts MOREPrompts = new TMOREPrompts();
-        static public TSession Session = new TSession();
-
-        static private RMSocket _Socket;
+        private bool _Disposed = false;
+        private RMSocket _Socket = null;
 
         #region Standard R&M Door functions
 
-        static Door()
+        public RMDoor()
         {
             DropInfo.Access = -1;
             DropInfo.Alias = "";
@@ -72,6 +71,13 @@ namespace RandM.RMLib
             MOREPrompts.ANSILength = 7;
             MOREPrompts.ASCII = " <MORE>";
 
+            OnHangUp = new OnHangUpCallback(DefaultOnHangUp);
+            OnLocalLogin = new OnLocalLoginCallback(DefaultOnLocalLogin);
+            OnStatusBar = new OnStatusBarCallback(DefaultOnStatusBar);
+            OnTimeOut = new OnTimeOutCallback(DefaultOnTimeOut);
+            OnTimeUp = new OnTimeUpCallback(DefaultOnTimeUp);
+            OnUsage = new OnUsageCallback(DefaultOnUsage); 
+            
             Session.DoIdleCheck = false;
             Session.Events = false;
             Session.EventsTime = DateTime.Now;
@@ -83,11 +89,54 @@ namespace RandM.RMLib
             SethWrite = false;
         }
 
+        ~RMDoor()
+        {
+            Dispose(false);
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            // This object will be cleaned up by the Dispose method.
+            // Therefore, you should call GC.SupressFinalize to
+            // take this object off the finalization queue
+            // and prevent finalization code for this object
+            // from executing a second time.
+            GC.SuppressFinalize(this);
+        }
+
+        public void Dispose(bool disposing)
+        {
+            // Check to see if Dispose has already been called.
+            if (!_Disposed)
+            {
+                // If disposing equals true, dispose all managed
+                // and unmanaged resources.
+                if (disposing)
+                {
+                    // Dispose managed resources.
+                }
+
+                // Call the appropriate methods to clean up
+                // unmanaged resources here.
+                // If disposing is false,
+                // only the following code is executed.
+                if (_Socket != null)
+                {
+                    _Socket.Close();
+                    _Socket = null;
+                }
+
+                // Note disposing has been done.
+                _Disposed = true;
+            }
+        }
+
         /// <summary>
         /// Checks for a carrier.  Always returns true for local sessions
         /// </summary>
         /// <returns>True if local or carrier exists, false if no carrier exists</returns>
-        static public bool Carrier
+        public bool Carrier
         {
             get { return (Local() || _Socket.Connected); }
         }
@@ -95,14 +144,13 @@ namespace RandM.RMLib
         /// <summary>
         /// Clears the local and remote input buffers
         /// </summary>
-        static public void ClearBuffers()
+        public void ClearBuffers()
         {
             while (Crt.KeyPressed())
                 Crt.ReadKey();
 
             if (!Local())
             {
-                byte[] Buffer = new byte[65536];
                 _Socket.ClearBuffers();
             }
         }
@@ -110,12 +158,13 @@ namespace RandM.RMLib
         /// <summary>
         /// Closes the socket connection, which will disconnect the remote user
         /// </summary>
-        static public void Disconnect()
+        public void Disconnect()
         {
             if (!Local())
             {
                 _Socket.Shutdown();
                 _Socket.Close();
+                _Socket = null;
             }
 
             DropInfo.SocketHandle = -1;
@@ -124,7 +173,7 @@ namespace RandM.RMLib
         /// <summary>
         /// Clears all text to the end of the line
         /// </summary>
-        static public void ClrEol()
+        public void ClrEol()
         {
             Write(Ansi.ClrEol());
         }
@@ -132,7 +181,7 @@ namespace RandM.RMLib
         /// <summary>
         /// Clears all text on the screen
         /// </summary>
-        static public void ClrScr()
+        public void ClrScr()
         {
             Write(Ansi.ClrScr());
         }
@@ -141,7 +190,7 @@ namespace RandM.RMLib
         /// Moves the cursor down the screen
         /// </summary>
         /// <param name="count">The number of lines to move the cursor down</param>
-        static public void CursorDown(int count)
+        public void CursorDown(int count)
         {
             Write(Ansi.CursorDown(count));
         }
@@ -150,7 +199,7 @@ namespace RandM.RMLib
         /// Moves the cursor to the left on the screen
         /// </summary>
         /// <param name="count">The number of columns to move the cursor left</param>
-        static public void CursorLeft(int count)
+        public void CursorLeft(int count)
         {
             Write(Ansi.CursorLeft(count));
         }
@@ -159,7 +208,7 @@ namespace RandM.RMLib
         /// Restores the previously saved cursor position
         /// </summary>
         /// <seealso cref="CursorSave"/>
-        static public void CursorRestore()
+        public void CursorRestore()
         {
             Write(Ansi.CursorRestore());
         }
@@ -168,7 +217,7 @@ namespace RandM.RMLib
         /// Moves the cursor to the right on the screen
         /// </summary>
         /// <param name="count">The number of columns to move the cursor right</param>
-        static public void CursorRight(int count)
+        public void CursorRight(int count)
         {
             Write(Ansi.CursorRight(count));
         }
@@ -177,7 +226,7 @@ namespace RandM.RMLib
         /// Saves the current cursor position
         /// </summary>
         /// <seealso cref="CursorRestore"/>
-        static public void CursorSave()
+        public void CursorSave()
         {
             Write(Ansi.CursorSave());
         }
@@ -186,7 +235,7 @@ namespace RandM.RMLib
         /// Moves the cursor up the screen
         /// </summary>
         /// <param name="count">The number of rows to move the cursor up</param>
-        static public void CursorUp(int count)
+        public void CursorUp(int count)
         {
             Write(Ansi.CursorUp(count));
         }
@@ -196,7 +245,7 @@ namespace RandM.RMLib
         /// </summary>
         /// <param name="fileName">The file to display</param>
         /// <param name="linesBeforePause">The number of lines to display before pausing.  0 causes no pauses</param>
-        static public void DisplayFile(string fileName, int linesBeforePause)
+        public void DisplayFile(string fileName, int linesBeforePause)
         {
             if (File.Exists(fileName))
             {
@@ -224,7 +273,7 @@ namespace RandM.RMLib
         status bar.
         It is not recommended that you mess with anything in this procedure
         */
-        static public void DoEvents()
+        public void DoEvents()
         {
             TimeSpan Dif = DateTime.Now.Subtract(Session.EventsTime);
             if ((Session.Events) && (Dif.TotalMilliseconds > 1000))
@@ -279,7 +328,7 @@ namespace RandM.RMLib
         /// <param name="foregroundColour">Foreground colour for the </param>
         /// <param name="backgroundColour"></param>
         /// <param name="borderStyle"></param>
-        static public void DrawBox(int left, int top, int right, int bottom, int foregroundColour, int backgroundColour, CrtPanel.BorderStyle borderStyle)
+        public void DrawBox(int left, int top, int right, int bottom, int foregroundColour, int backgroundColour, CrtPanel.BorderStyle borderStyle)
         {
             // Characters for the box
             char TopLeft = '\0';
@@ -362,22 +411,22 @@ namespace RandM.RMLib
             TextAttr(SavedAttr);
         }
 
-        static public void GotoX(int column)
+        public void GotoX(int column)
         {
             Write(Ansi.GotoX(column));
         }
 
-        static public void GotoXY(int column, int row)
+        public void GotoXY(int column, int row)
         {
             Write(Ansi.GotoXY(column, row));
         }
 
-        static public void GotoY(int row)
+        public void GotoY(int row)
         {
             Write(Ansi.GotoY(row));
         }
 
-        static public string Input(string defaultText, string allowedCharacters, char passwordCharacter, int numberOfCharactersToDisplay, int maximumLength, int attribute)
+        public string Input(string defaultText, string allowedCharacters, char passwordCharacter, int numberOfCharactersToDisplay, int maximumLength, int attribute)
         {
             if (defaultText.Length > maximumLength)
             {
@@ -484,7 +533,7 @@ namespace RandM.RMLib
             return S;
         }
 
-        static public bool KeyPressed()
+        public bool KeyPressed()
         {
             DoEvents();
 
@@ -498,14 +547,14 @@ namespace RandM.RMLib
             }
         }
 
-        static public bool Local()
+        public bool Local()
         {
             return (DropInfo.SocketHandle == -1);
         }
 
-        static public bool LocalEcho { get; set; }
+        public bool LocalEcho { get; set; }
 
-        static public void More()
+        public void More()
         {
             string Line = "";
             int LineLength = 0;
@@ -535,7 +584,7 @@ namespace RandM.RMLib
             TextAttr(OldAttr);
         }
 
-        static public bool Open()
+        public bool Open()
         {
             if (Local())
             {
@@ -550,7 +599,7 @@ namespace RandM.RMLib
             }
         }
 
-        static private string PipeToAnsi(string AText)
+        private string PipeToAnsi(string AText)
         {
             if (AText.Contains("|"))
             {
@@ -568,9 +617,9 @@ namespace RandM.RMLib
             return AText;
         }
 
-        static public bool PipeWrite { get; set; }
+        public bool PipeWrite { get; set; }
 
-        static public char? ReadKey()
+        public char? ReadKey()
         {
             char? Ch = null;
             LastKey.Location = DoorKeyLocation.None;
@@ -721,19 +770,14 @@ namespace RandM.RMLib
             return Ch;
         }
 
-        static public string ReadLn()
+        public string ReadLn()
         {
             return Input("", CharacterMask.All, '\0', 50, 50, 7);
         }
 
-        static public bool SethWrite { get; set; }
+        public bool SethWrite { get; set; }
 
-        static public void Shutdown()
-        {
-            if (!Local()) _Socket.Close();
-        }
-
-        static public void Startup(string[] args)
+        public void Startup(string[] args)
         {
             string DropFile = "";
             bool Local = false;
@@ -847,7 +891,7 @@ namespace RandM.RMLib
             }
         }
 
-        static public bool StripLF
+        public bool StripLF
         {
             get
             {
@@ -869,7 +913,7 @@ namespace RandM.RMLib
             }
         }
 
-        static public bool StripNull
+        public bool StripNull
         {
             get
             {
@@ -891,7 +935,7 @@ namespace RandM.RMLib
             }
         }
 
-        static public string StripSeth(string text)
+        public string StripSeth(string text)
         {
             if (text.Contains("`"))
             {
@@ -934,76 +978,76 @@ namespace RandM.RMLib
             return text;
         }
 
-        static public void SysopChat()
+        public void SysopChat()
         {
             char? Ch = null;
             DoorKeyLocation OurLastKeyLocation = DoorKeyLocation.None;
 
             do
             {
-                if (Door.KeyPressed())
+                if (this.KeyPressed())
                 {
-                    Ch = Door.ReadKey();
+                    Ch = this.ReadKey();
 
                     if ((Ch >= 32) && (Ch <= 126))
                     {
-                        if (OurLastKeyLocation != Door.LastKey.Location)
+                        if (OurLastKeyLocation != this.LastKey.Location)
                         {
-                            switch (Door.LastKey.Location)
+                            switch (this.LastKey.Location)
                             {
                                 case DoorKeyLocation.Local:
-                                    Door.TextColor((int)ConsoleColor.Green);
+                                    this.TextColor((int)ConsoleColor.Green);
                                     break;
                                 case DoorKeyLocation.Remote:
-                                    Door.TextColor((int)ConsoleColor.Red);
+                                    this.TextColor((int)ConsoleColor.Red);
                                     break;
                             }
-                            OurLastKeyLocation = Door.LastKey.Location;
+                            OurLastKeyLocation = this.LastKey.Location;
                         }
 
-                        Door.Write(Ch.ToString());
+                        this.Write(Ch.ToString());
                     }
                     else if (Ch == '\x0D')
                     {
-                        Door.WriteLn();
+                        this.WriteLn();
                     }
                 }
             } while (Ch != '\x1B');
         }
 
-        static public void TextAttr(int attribute)
+        public void TextAttr(int attribute)
         {
             Write(Ansi.TextAttr(attribute));
         }
 
-        static public void TextBackground(int colour)
+        public void TextBackground(int colour)
         {
             Write(Ansi.TextBackground(colour));
         }
 
-        static public void TextColor(int colour)
+        public void TextColor(int colour)
         {
             Write(Ansi.TextColor(colour));
         }
 
-        static public int TimeIdle()
+        public int TimeIdle()
         {
             TimeSpan Dif = DateTime.Now.Subtract(LastKey.Time);
             return (int)Dif.TotalSeconds;
         }
 
-        static public int TimeLeft()
+        public int TimeLeft()
         {
             return (DropInfo.MaxTime - TimeOn());
         }
 
-        static public int TimeOn()
+        public int TimeOn()
         {
             TimeSpan Dif = DateTime.Now.Subtract(Session.TimeOn);
             return (int)Dif.TotalSeconds;
         }
 
-        static public void Write(string text)
+        public void Write(string text)
         {
             if (PipeWrite && (text.Contains("|"))) text = PipeToAnsi(text);
 
@@ -1041,67 +1085,67 @@ namespace RandM.RMLib
                                 text = text.Substring(2);
                                 break;
                             case "`1":
-                                Door.TextColor(Crt.Blue);
+                                this.TextColor(Crt.Blue);
                                 text = text.Substring(2);
                                 break;
                             case "`2":
-                                Door.TextColor(Crt.Green);
+                                this.TextColor(Crt.Green);
                                 text = text.Substring(2);
                                 break;
                             case "`3":
-                                Door.TextColor(Crt.Cyan);
+                                this.TextColor(Crt.Cyan);
                                 text = text.Substring(2);
                                 break;
                             case "`4":
-                                Door.TextColor(Crt.Red);
+                                this.TextColor(Crt.Red);
                                 text = text.Substring(2);
                                 break;
                             case "`5":
-                                Door.TextColor(Crt.Magenta);
+                                this.TextColor(Crt.Magenta);
                                 text = text.Substring(2);
                                 break;
                             case "`6":
-                                Door.TextColor(Crt.Brown);
+                                this.TextColor(Crt.Brown);
                                 text = text.Substring(2);
                                 break;
                             case "`7":
-                                Door.TextColor(Crt.LightGray);
+                                this.TextColor(Crt.LightGray);
                                 text = text.Substring(2);
                                 break;
                             case "`8":
-                                Door.TextColor(Crt.White); // Supposed to be dark gray, but a bug has this as white (TODO Check if this is still accurate)
+                                this.TextColor(Crt.White); // Supposed to be dark gray, but a bug has this as white (TODO Check if this is still accurate)
                                 text = text.Substring(2);
                                 break;
                             case "`9":
-                                Door.TextColor(Crt.LightBlue);
+                                this.TextColor(Crt.LightBlue);
                                 text = text.Substring(2);
                                 break;
                             case "`0":
-                                Door.TextColor(Crt.LightGreen);
+                                this.TextColor(Crt.LightGreen);
                                 text = text.Substring(2);
                                 break;
                             case "`!":
-                                Door.TextColor(Crt.LightCyan);
+                                this.TextColor(Crt.LightCyan);
                                 text = text.Substring(2);
                                 break;
                             case "`@":
-                                Door.TextColor(Crt.LightRed);
+                                this.TextColor(Crt.LightRed);
                                 text = text.Substring(2);
                                 break;
                             case "`#":
-                                Door.TextColor(Crt.LightMagenta);
+                                this.TextColor(Crt.LightMagenta);
                                 text = text.Substring(2);
                                 break;
                             case "`$":
-                                Door.TextColor(Crt.Yellow);
+                                this.TextColor(Crt.Yellow);
                                 text = text.Substring(2);
                                 break;
                             case "`%":
-                                Door.TextColor(Crt.White);
+                                this.TextColor(Crt.White);
                                 text = text.Substring(2);
                                 break;
                             case "`*":
-                                Door.TextColor(Crt.Black);
+                                this.TextColor(Crt.Black);
                                 text = text.Substring(2);
                                 break;
                             case "`b": // TODO Case sensitive?
@@ -1109,8 +1153,8 @@ namespace RandM.RMLib
                                 text = text.Substring(2);
                                 break;
                             case "`c": // TODO Case sensitive?
-                                Door.TextAttr(7);
-                                Door.ClrScr();
+                                this.TextAttr(7);
+                                this.ClrScr();
                                 Ansi.Write("\r\n\r\n");
                                 if (!Local()) _Socket.WriteString("\r\n\r\n");
                                 text = text.Substring(2);
@@ -1121,9 +1165,9 @@ namespace RandM.RMLib
                                 text = text.Substring(2);
                                 break;
                             case "`k": // TODO Case sensitive?
-                                Door.Write("  `2<`0MORE`2>");
-                                Door.ReadKey();
-                                Door.Write("\b\b\b\b\b\b\b\b        \b\b\b\b\b\b\b\b");
+                                this.Write("  `2<`0MORE`2>");
+                                this.ReadKey();
+                                this.Write("\b\b\b\b\b\b\b\b        \b\b\b\b\b\b\b\b");
                                 text = text.Substring(2);
                                 break;
                             case "`l": // TODO Case sensitive?
@@ -1157,35 +1201,35 @@ namespace RandM.RMLib
                                 switch (BackTick3.ToLower())
                                 {
                                     case "`r0":
-                                        Door.TextBackground(Crt.Black);
+                                        this.TextBackground(Crt.Black);
                                         text = text.Substring(3);
                                         break;
                                     case "`r1":
-                                        Door.TextBackground(Crt.Blue);
+                                        this.TextBackground(Crt.Blue);
                                         text = text.Substring(3);
                                         break;
                                     case "`r2":
-                                        Door.TextBackground(Crt.Green);
+                                        this.TextBackground(Crt.Green);
                                         text = text.Substring(3);
                                         break;
                                     case "`r3":
-                                        Door.TextBackground(Crt.Cyan);
+                                        this.TextBackground(Crt.Cyan);
                                         text = text.Substring(3);
                                         break;
                                     case "`r4":
-                                        Door.TextBackground(Crt.Red);
+                                        this.TextBackground(Crt.Red);
                                         text = text.Substring(3);
                                         break;
                                     case "`r5":
-                                        Door.TextBackground(Crt.Magenta);
+                                        this.TextBackground(Crt.Magenta);
                                         text = text.Substring(3);
                                         break;
                                     case "`r6":
-                                        Door.TextBackground(Crt.Brown);
+                                        this.TextBackground(Crt.Brown);
                                         text = text.Substring(3);
                                         break;
                                     case "`r7":
-                                        Door.TextBackground(Crt.LightGray);
+                                        this.TextBackground(Crt.LightGray);
                                         text = text.Substring(3);
                                         break;
                                     default:
@@ -1210,7 +1254,7 @@ namespace RandM.RMLib
         /// <summary>
         /// Advances the cursor to the beginning of the next line, scrolling the screen if necessary
         /// </summary>
-        static public void WriteLn()
+        public void WriteLn()
         {
             Write("\r\n");
         }
@@ -1219,12 +1263,12 @@ namespace RandM.RMLib
         /// Outputs a string of text to the screen before advancing the cursor to the beginning of the next line, scrolling if necessary
         /// </summary>
         /// <param name="text">The text to be displayed</param>
-        static public void WriteLn(string text)
+        public void WriteLn(string text)
         {
             Write(text + "\r\n");
         }
 
-        static private void ReadDoor32(string AFile)
+        private void ReadDoor32(string AFile)
         {
             if (File.Exists(AFile))
             {
@@ -1247,7 +1291,7 @@ namespace RandM.RMLib
             }
         }
 
-        static private void ReadInfo(string AFile)
+        private void ReadInfo(string AFile)
         {
             if (File.Exists(AFile))
             {
@@ -1278,11 +1322,11 @@ namespace RandM.RMLib
         // you should just reassign the above On* variables
         // to your own procedures.
 
-        static public event EventHandler<CommandLineParameterEventArgs> OnCLP = null;
+        public event EventHandler<CommandLineParameterEventArgs> OnCLP = null;
 
         public delegate void OnHangUpCallback();
-        static public OnHangUpCallback OnHangUp = new OnHangUpCallback(DefaultOnHangUp);
-        static private void DefaultOnHangUp()
+        public OnHangUpCallback OnHangUp = null;
+        private void DefaultOnHangUp()
         {
             TextAttr(15);
             ClrScr();
@@ -1293,8 +1337,8 @@ namespace RandM.RMLib
         }
 
         public delegate void OnLocalLoginCallback();
-        static public OnLocalLoginCallback OnLocalLogin = new OnLocalLoginCallback(DefaultOnLocalLogin);
-        static private void DefaultOnLocalLogin()
+        public OnLocalLoginCallback OnLocalLogin = null;
+        private void DefaultOnLocalLogin()
         {
             ClrScr();
             DrawBox(2, 2, 18, 6, Crt.White, Crt.Blue, CrtPanel.BorderStyle.Double);
@@ -1309,22 +1353,22 @@ namespace RandM.RMLib
         }
 
         public delegate void OnStatusBarCallback();
-        static public OnStatusBarCallback OnStatusBar = new OnStatusBarCallback(DefaultOnStatusBar);
-        static private void DefaultOnStatusBar()
+        public OnStatusBarCallback OnStatusBar = null;
+        private void DefaultOnStatusBar()
         {
-            Crt.FastWrite("þ                           þ                   þ             þ                þ", 1, 25, 30);
-            Crt.FastWrite((DropInfo.RealName + new string(' ', 22)).Substring(0, 22), 3, 25, 31);
-            Crt.FastWrite(_Version, 31, 25, 31);
-            Crt.FastWrite(("Idle: " + StringUtils.SecToMS(TimeIdle()) + "s" + new string(' ', 11)).Substring(0, 11), 51, 25, 31);
-            Crt.FastWrite("Left: " + StringUtils.SecToHMS(TimeLeft()) + "s", 65, 25, 31);
+            Crt.FastWrite("þ ___User Name Goes Here____ þ R&M Door Library þ Idle: xx:xx þ Left: xx:xx:xx þ", 1, 25, 30);
+            Crt.FastWrite((DropInfo.RealName + new string(' ', 23)).Substring(0, 23), 3, 25, 31);
+            Crt.FastWrite("R&M Door Library", 32, 25, 31);
+            Crt.FastWrite(("Idle: " + StringUtils.SecToMS(TimeIdle()) + "s" + new string(' ', 11)).Substring(0, 11), 52, 25, 31);
+            Crt.FastWrite("Left: " + StringUtils.SecToHMS(TimeLeft()) + "s", 66, 25, 31);
         }
 
         public delegate bool OnSysOpKeyCallback(char AKey);
-        static public OnSysOpKeyCallback OnSysOpKey = null;
+        public OnSysOpKeyCallback OnSysOpKey = null;
 
         public delegate void OnTimeOutCallback();
-        static public OnTimeOutCallback OnTimeOut = new OnTimeOutCallback(DefaultOnTimeOut);
-        static private void DefaultOnTimeOut()
+        public OnTimeOutCallback OnTimeOut = null;
+        private void DefaultOnTimeOut()
         {
             TextAttr(15);
             ClrScr();
@@ -1335,11 +1379,11 @@ namespace RandM.RMLib
         }
 
         public delegate void OnTimeOutWarningCallback(int AMinutesLeft);
-        static public OnTimeOutWarningCallback OnTimeOutWarning = null;
+        public OnTimeOutWarningCallback OnTimeOutWarning = null;
 
         public delegate void OnTimeUpCallback();
-        static public OnTimeUpCallback OnTimeUp = new OnTimeUpCallback(DefaultOnTimeUp);
-        static private void DefaultOnTimeUp()
+        public OnTimeUpCallback OnTimeUp = null;
+        private void DefaultOnTimeUp()
         {
             TextAttr(15);
             ClrScr();
@@ -1350,11 +1394,11 @@ namespace RandM.RMLib
         }
 
         public delegate void OnTimeUpWarningCallback(int AMinutesLeft);
-        static public OnTimeUpWarningCallback OnTimeUpWarning = null;
+        public OnTimeUpWarningCallback OnTimeUpWarning = null;
 
         public delegate void OnUsageCallback();
-        static public OnUsageCallback OnUsage = new OnUsageCallback(DefaultOnUsage);
-        static private void DefaultOnUsage()
+        public OnUsageCallback OnUsage = null;
+        private void DefaultOnUsage()
         {
             string EXE = Path.GetFileName(ProcessUtils.ExecutablePath);
 
