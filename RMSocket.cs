@@ -1,13 +1,23 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 
 namespace RandM.RMLib
 {
     class RMSocket : IDisposable
     {
         private bool _Disposed = false;
+        private AutoResetEvent _ReadEvent = new AutoResetEvent(false);
+        private object _ReadLock = new object();
+        private Queue<byte> _ReadQueue = new Queue<byte>();
+        private Thread _ReadThread;
+        private AutoResetEvent _WriteEvent = new AutoResetEvent(false);
+        private object _WriteLock = new object();
+        private Queue<byte> _WriteQueue = new Queue<byte>();
+        private Thread _WriteThread;
 
         public RMSocket(int socketHandle)
         {
@@ -28,6 +38,14 @@ namespace RandM.RMLib
             {
                 SocketHandle = new IntPtr(socketHandle);
             }
+
+            // Start threads
+            _ReadThread = new Thread(new ThreadStart(ReadFunc));
+            _ReadThread.IsBackground = true;
+            _ReadThread.Start();
+            _WriteThread = new Thread(new ThreadStart(WriteFunc));
+            _WriteThread.IsBackground = true;
+            _WriteThread.Start();
         }
 
         ~RMSocket()
@@ -70,6 +88,19 @@ namespace RandM.RMLib
             }
         }
 
+        public void ClearBuffers()
+        {
+            lock (_ReadLock)
+            {
+                _ReadQueue.Clear();
+            }
+
+            lock (_WriteLock)
+            {
+                _WriteQueue.Clear();
+            }
+        }
+
         public void Close()
         {
             if (Connected)
@@ -94,126 +125,73 @@ namespace RandM.RMLib
             }
         }
 
-        public bool Poll(int microSeconds, SelectMode mode)
+        public byte ReadByte()
         {
-            if (Connected)
+            while (true)
             {
-                if (OSUtils.IsWindows)
+                lock (_ReadLock)
                 {
-                    IntPtr[] FDSet = new IntPtr[2] { (IntPtr)1, SocketHandle };
-
-                    int Result = 0;
-                    if (microSeconds == -1)
+                    if (_ReadQueue.Count > 0)
                     {
-                        // Wait indefinitely
-                        Result = NativeMethods.select(
-                                    0,
-                                    mode == SelectMode.SelectRead ? FDSet : null,
-                                    mode == SelectMode.SelectWrite ? FDSet : null,
-                                    mode == SelectMode.SelectError ? FDSet : null,
-                                    IntPtr.Zero);
-                    }
-                    else
-                    {
-                        // Wait the specified time
-                        NativeMethods.TimeVal timeout = new NativeMethods.TimeVal();
-                        timeout.Seconds = microSeconds / 1000000;
-                        timeout.Microseconds = microSeconds % 1000000;
-
-                        Result = NativeMethods.select(
-                                    0,
-                                    mode == SelectMode.SelectRead ? FDSet : null,
-                                    mode == SelectMode.SelectWrite ? FDSet : null,
-                                    mode == SelectMode.SelectError ? FDSet : null,
-                                    ref timeout);
-                    }
-
-                    if ((SocketError)Result == SocketError.SocketError)
-                    {
-                        SocketHandle = IntPtr.Zero;
-                        return false;
-                    }
-
-                    if ((int)FDSet[0] == 0)
-                    {
-                        return false;
-                    }
-
-                    return (FDSet[1] == SocketHandle);
-                }
-                else
-                {
-                    unsafe
-                    {
-                        byte[] buffer = new byte[1];
-                        fixed (byte* pData = buffer)
-                        {
-                            int BytesRead = NativeMethods.recv_libc(SocketHandle, pData, buffer.Length, (int)SocketFlags.Peek);
-                            if (BytesRead >= 0)
-                            {
-                                return true;
-                            }
-                            else
-                            {
-                                return false;
-                            }
-                        }
+                        return _ReadQueue.Dequeue();
                     }
                 }
-            }
-            else
-            {
-                return false;
+
+                // No data waiting, so wait for ReadFunc() to signal that new data has been received
+                _ReadEvent.WaitOne();
             }
         }
 
-        public int Receive(byte[] buffer)
+        private unsafe void ReadFunc()
         {
-            if (buffer == null) throw new ArgumentNullException("buffer");
+            int BytesRead = 0;
+            byte[] Buffer = new byte[1024];
 
-            if (Connected)
+            fixed (byte* pData = Buffer)
             {
-                unsafe
+                while (Connected)
                 {
-                    fixed (byte* pData = buffer)
+                    if (OSUtils.IsWindows)
                     {
-                        if (OSUtils.IsWindows)
+                        BytesRead = NativeMethods.recv(SocketHandle, new IntPtr(pData), Buffer.Length, SocketFlags.None);
+                    }
+                    else
+                    {
+                        BytesRead = NativeMethods.recv_libc(SocketHandle, pData, Buffer.Length, (int)SocketFlags.None);
+                    }
+
+                    if ((SocketError)BytesRead == SocketError.SocketError)
+                    {
+                        SocketHandle = IntPtr.Zero;
+                    }
+                    else if (BytesRead == 0)
+                    {
+                        SocketHandle = IntPtr.Zero;
+                    }
+                    else
+                    {
+                        lock (_ReadLock)
                         {
-                            int BytesRead = NativeMethods.recv(SocketHandle, new IntPtr(pData), buffer.Length, SocketFlags.None);
-                            if ((SocketError)BytesRead == SocketError.SocketError)
+                            for (int i = 0; i < BytesRead; i++)
                             {
-                                SocketHandle = IntPtr.Zero;
-                                return 0;
-                            }
-                            else if (BytesRead == 0)
-                            {
-                                SocketHandle = IntPtr.Zero;
-                                return 0;
-                            }
-                            else
-                            {
-                                return BytesRead;
+                                _ReadQueue.Enqueue(Buffer[i]);
                             }
                         }
-                        else
-                        {
-                            int BytesRead = NativeMethods.recv_libc(SocketHandle, pData, buffer.Length, 0);
-                            if (BytesRead >= 0)
-                            {
-                                return BytesRead;
-                            }
-                            else
-                            {
-                                SocketHandle = IntPtr.Zero;
-                                return 0;
-                            }
-                        }
+
+                        _ReadEvent.Set();
                     }
                 }
             }
-            else
+        }
+
+        public int ReadQueueSize
+        {
+            get
             {
-                return 0;
+                lock (_ReadLock)
+                {
+                    return _ReadQueue.Count;
+                }
             }
         }
 
@@ -234,61 +212,79 @@ namespace RandM.RMLib
             }
         }
 
-        public int Send(string text)
+        public void WriteBytes(byte[] buffer)
         {
-            if (text == null) throw new ArgumentNullException("text");
+            if (buffer == null) throw new ArgumentNullException("buffer");
+            if (buffer.Length == 0) return;
+            if (!Connected) return;
 
-            if (Connected)
+            lock (_WriteLock)
             {
-                int TotalBytesSent = 0;
-                byte[] SendBuffer = RMEncoding.Ansi.GetBytes(text);
-
-                unsafe
+                for (int i = 0; i < buffer.Length; i++)
                 {
-                    fixed (byte* pData = SendBuffer)
-                    {
-                        while (TotalBytesSent < SendBuffer.Length)
-                        {
-                            if (OSUtils.IsWindows)
-                            {
-                                int ThisBytesSent = NativeMethods.send(SocketHandle, new IntPtr(pData + TotalBytesSent), SendBuffer.Length - TotalBytesSent, NativeMethods.MsgFlags.MSG_NONE);
-                                if ((SocketError)ThisBytesSent == SocketError.SocketError)
-                                {
-                                    SocketHandle = IntPtr.Zero;
-                                    return TotalBytesSent;
-                                }
-                                else if (ThisBytesSent == 0)
-                                {
-                                    SocketHandle = IntPtr.Zero;
-                                    return TotalBytesSent;
-                                }
-                                else
-                                {
-                                    TotalBytesSent += ThisBytesSent;
-                                }
-                            }
-                            else
-                            {
-                                int ThisBytesSent = NativeMethods.send_libc(SocketHandle, pData + TotalBytesSent, SendBuffer.Length - TotalBytesSent, 0);
-                                if (ThisBytesSent >= 0)
-                                {
-                                    TotalBytesSent += ThisBytesSent;
-                                }
-                                else
-                                {
-                                    SocketHandle = IntPtr.Zero;
-                                    return TotalBytesSent;
-                                }
-                            }
-                        }
-
-                        return TotalBytesSent;
-                    }
+                    _WriteQueue.Enqueue(buffer[i]);
                 }
             }
-            else
+
+            // Tell WriteFunc() that there's data to be sent
+            _WriteEvent.Set();
+        }
+
+        public void WriteString(string text)
+        {
+            if (text == null) throw new ArgumentException("text");
+            if (text.Length == 0) return;
+            if (!Connected) return;
+
+            WriteBytes(RMEncoding.Ansi.GetBytes(text));
+        }
+
+        private unsafe void WriteFunc()
+        {
+            int BytesWritten = 0;
+            byte[] Buffer;
+
+            while (Connected)
             {
-                return 0;
+                lock (_WriteLock)
+                {
+                    Buffer = (_WriteQueue.Count > 0) ? _WriteQueue.ToArray() : null;
+                }
+
+                if (Buffer == null)
+                {
+                    // No data waiting to be sent, so wait for Write*() to add new data to the write buffer
+                    _WriteEvent.WaitOne();
+                }
+                else
+                {
+                    fixed (byte* pData = Buffer)
+                    {
+                        if (OSUtils.IsWindows)
+                        {
+                            BytesWritten = NativeMethods.send(SocketHandle, new IntPtr(pData), Buffer.Length, NativeMethods.MsgFlags.MSG_NONE);
+                        }
+                        else
+                        {
+                            BytesWritten = NativeMethods.send_libc(SocketHandle, pData, Buffer.Length, (int)NativeMethods.MsgFlags.MSG_NONE);
+                        }
+                    }
+
+                    if ((SocketError)BytesWritten == SocketError.SocketError)
+                    {
+                        SocketHandle = IntPtr.Zero;
+                    }
+                    else if (BytesWritten > 0)
+                    {
+                        lock (_WriteLock)
+                        {
+                            for (int i = 0; i < BytesWritten; i++)
+                            {
+                                _WriteQueue.Dequeue();
+                            }
+                        }
+                    }
+                }
             }
         }
     }
