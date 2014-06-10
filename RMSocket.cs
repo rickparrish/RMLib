@@ -125,6 +125,24 @@ namespace RandM.RMLib
             }
         }
 
+        public byte PeekByte()
+        {
+            while (true)
+            {
+                lock (_ReadLock)
+                {
+
+                    if (_ReadQueue.Count > 0)
+                    {
+                        return _ReadQueue.Peek();
+                    }
+                }
+
+                // No data waiting, so wait for ReadFunc() to signal that new data has been received
+                _ReadEvent.WaitOne();
+            }
+        }
+        
         public byte ReadByte()
         {
             while (true)

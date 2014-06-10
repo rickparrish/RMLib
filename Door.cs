@@ -627,8 +627,73 @@ namespace RandM.RMLib
                 else if ((!Local()) && (_Socket.ReadQueueSize > 0))
                 {
                     Ch = (char)_Socket.ReadByte();
-                    LastKey.Extended = false;
-                    LastKey.Location = DoorKeyLocation.Remote;
+                    if (Ch == '\x1B')
+                    {
+                        // ESC, check if we have more data
+                        if (_Socket.ReadQueueSize == 0)
+                        {
+                            // No data waiting, so wait 1/10th of a second to see if more data comes
+                            Thread.Sleep(100);
+                        }
+
+                        // Check if we have data to follow the ESC
+                        if (_Socket.ReadQueueSize > 0)
+                        {
+                            // We have more data, see if it's a [
+                            char SecondChar = (char)_Socket.PeekByte();
+                            if (SecondChar == '[')
+                            {
+                                // Consume the [ since it's most likely part of an escape sequence (if someone actually hit ESC and [ on their own, tough luck)
+                                _Socket.ReadByte();
+
+                                // Now we have ESC[, see if we have more data
+                                if (_Socket.ReadQueueSize == 0)
+                                {
+                                    // No data waiting, so wait 1/10th of a second to see if more data comes
+                                    Thread.Sleep(100);
+                                }
+
+                                // Check if we have data to follow the ESC[
+                                if (_Socket.ReadQueueSize > 0)
+                                {
+                                    // We have more data, see if it's a sequence we handle
+                                    // TODO Not all sequences are ESC[ followed by a single byte, ie F1
+                                    char ThirdChar = (char)_Socket.ReadByte();
+                                    switch (ThirdChar)
+                                    {
+                                        case 'A':
+                                            Ch = (char)DoorKey.UpArrow;
+                                            LastKey.Extended = true;
+                                            LastKey.Location = DoorKeyLocation.Remote;
+                                            break;
+                                        case 'B':
+                                            Ch = (char)DoorKey.DownArrow;
+                                            LastKey.Extended = true;
+                                            LastKey.Location = DoorKeyLocation.Remote;
+                                            break;
+                                        case 'C':
+                                            Ch = (char)DoorKey.RightArrow;
+                                            LastKey.Extended = true;
+                                            LastKey.Location = DoorKeyLocation.Remote;
+                                            break;
+                                        case 'D':
+                                            Ch = (char)DoorKey.LeftArrow;
+                                            LastKey.Extended = true;
+                                            LastKey.Location = DoorKeyLocation.Remote;
+                                            break;
+                                    }
+                                }
+                            }
+                            else
+                            {
+                            }
+                        }
+                    }
+                    else
+                    {
+                        LastKey.Extended = false;
+                        LastKey.Location = DoorKeyLocation.Remote;
+                    }
                 }
             } while (LastKey.Location == DoorKeyLocation.None);
 
