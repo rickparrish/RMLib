@@ -587,10 +587,35 @@ namespace RandM.RMLib
                     if (Ch == '\0')
                     {
                         Ch = Crt.ReadKey();
-                        if ((!Local()) && (OnSysOpKey != null) && (!OnSysOpKey((char)Ch)))
+                        switch (Ch)
                         {
-                            LastKey.Extended = true;
-                            LastKey.Location = DoorKeyLocation.Local;
+                            case 'H':
+                                Ch = (char)DoorKey.UpArrow;
+                                LastKey.Extended = false;
+                                LastKey.Location = DoorKeyLocation.Local;
+                                break;
+                            case 'K':
+                                Ch = (char)DoorKey.LeftArrow;
+                                LastKey.Extended = false;
+                                LastKey.Location = DoorKeyLocation.Local;
+                                break;
+                            case 'M':
+                                Ch = (char)DoorKey.RightArrow;
+                                LastKey.Extended = false;
+                                LastKey.Location = DoorKeyLocation.Local;
+                                break;
+                            case 'P':
+                                Ch = (char)DoorKey.DownArrow;
+                                LastKey.Extended = false;
+                                LastKey.Location = DoorKeyLocation.Local;
+                                break;
+                            default:
+                                if ((!Local()) && (OnSysOpKey != null) && (!OnSysOpKey((char)Ch)))
+                                {
+                                    LastKey.Extended = true;
+                                    LastKey.Location = DoorKeyLocation.Local;
+                                }
+                                break;
                         }
                     }
                     else
@@ -1267,6 +1292,14 @@ namespace RandM.RMLib
         /// The ANSI (coloured) emulation type
         /// </summary>
         ANSI
+    }
+
+    public enum DoorKey
+    {
+        DownArrow = 0xA0,
+        LeftArrow = 0xA1,
+        RightArrow = 0xA2,
+        UpArrow = 0xA3
     }
 
     /// <summary>
