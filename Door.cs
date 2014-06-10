@@ -985,31 +985,31 @@ namespace RandM.RMLib
 
             do
             {
-                if (this.KeyPressed())
+                if (KeyPressed())
                 {
-                    Ch = this.ReadKey();
+                    Ch = ReadKey();
 
                     if ((Ch >= 32) && (Ch <= 126))
                     {
-                        if (OurLastKeyLocation != this.LastKey.Location)
+                        if (OurLastKeyLocation != LastKey.Location)
                         {
-                            switch (this.LastKey.Location)
+                            switch (LastKey.Location)
                             {
                                 case DoorKeyLocation.Local:
-                                    this.TextColor((int)ConsoleColor.Green);
+                                    TextColor((int)ConsoleColor.Green);
                                     break;
                                 case DoorKeyLocation.Remote:
-                                    this.TextColor((int)ConsoleColor.Red);
+                                    TextColor((int)ConsoleColor.Red);
                                     break;
                             }
-                            OurLastKeyLocation = this.LastKey.Location;
+                            OurLastKeyLocation = LastKey.Location;
                         }
 
-                        this.Write(Ch.ToString());
+                        Write(Ch.ToString());
                     }
                     else if (Ch == '\x0D')
                     {
-                        this.WriteLn();
+                        WriteLn();
                     }
                 }
             } while (Ch != '\x1B');
@@ -1085,67 +1085,67 @@ namespace RandM.RMLib
                                 text = text.Substring(2);
                                 break;
                             case "`1":
-                                this.TextColor(Crt.Blue);
+                                TextColor(Crt.Blue);
                                 text = text.Substring(2);
                                 break;
                             case "`2":
-                                this.TextColor(Crt.Green);
+                                TextColor(Crt.Green);
                                 text = text.Substring(2);
                                 break;
                             case "`3":
-                                this.TextColor(Crt.Cyan);
+                                TextColor(Crt.Cyan);
                                 text = text.Substring(2);
                                 break;
                             case "`4":
-                                this.TextColor(Crt.Red);
+                                TextColor(Crt.Red);
                                 text = text.Substring(2);
                                 break;
                             case "`5":
-                                this.TextColor(Crt.Magenta);
+                                TextColor(Crt.Magenta);
                                 text = text.Substring(2);
                                 break;
                             case "`6":
-                                this.TextColor(Crt.Brown);
+                                TextColor(Crt.Brown);
                                 text = text.Substring(2);
                                 break;
                             case "`7":
-                                this.TextColor(Crt.LightGray);
+                                TextColor(Crt.LightGray);
                                 text = text.Substring(2);
                                 break;
                             case "`8":
-                                this.TextColor(Crt.White); // Supposed to be dark gray, but a bug has this as white (TODO Check if this is still accurate)
+                                TextColor(Crt.White); // Supposed to be dark gray, but a bug has this as white (TODO Check if this is still accurate)
                                 text = text.Substring(2);
                                 break;
                             case "`9":
-                                this.TextColor(Crt.LightBlue);
+                                TextColor(Crt.LightBlue);
                                 text = text.Substring(2);
                                 break;
                             case "`0":
-                                this.TextColor(Crt.LightGreen);
+                                TextColor(Crt.LightGreen);
                                 text = text.Substring(2);
                                 break;
                             case "`!":
-                                this.TextColor(Crt.LightCyan);
+                                TextColor(Crt.LightCyan);
                                 text = text.Substring(2);
                                 break;
                             case "`@":
-                                this.TextColor(Crt.LightRed);
+                                TextColor(Crt.LightRed);
                                 text = text.Substring(2);
                                 break;
                             case "`#":
-                                this.TextColor(Crt.LightMagenta);
+                                TextColor(Crt.LightMagenta);
                                 text = text.Substring(2);
                                 break;
                             case "`$":
-                                this.TextColor(Crt.Yellow);
+                                TextColor(Crt.Yellow);
                                 text = text.Substring(2);
                                 break;
                             case "`%":
-                                this.TextColor(Crt.White);
+                                TextColor(Crt.White);
                                 text = text.Substring(2);
                                 break;
                             case "`*":
-                                this.TextColor(Crt.Black);
+                                TextColor(Crt.Black);
                                 text = text.Substring(2);
                                 break;
                             case "`b": // TODO Case sensitive?
@@ -1153,8 +1153,8 @@ namespace RandM.RMLib
                                 text = text.Substring(2);
                                 break;
                             case "`c": // TODO Case sensitive?
-                                this.TextAttr(7);
-                                this.ClrScr();
+                                TextAttr(7);
+                                ClrScr();
                                 Ansi.Write("\r\n\r\n");
                                 if (!Local()) _Socket.WriteString("\r\n\r\n");
                                 text = text.Substring(2);
@@ -1165,17 +1165,17 @@ namespace RandM.RMLib
                                 text = text.Substring(2);
                                 break;
                             case "`k": // TODO Case sensitive?
-                                this.Write("  `2<`0MORE`2>");
-                                this.ReadKey();
-                                this.Write("\b\b\b\b\b\b\b\b        \b\b\b\b\b\b\b\b");
+                                Write("  `2<`0MORE`2>");
+                                ReadKey();
+                                Write("\b\b\b\b\b\b\b\b        \b\b\b\b\b\b\b\b");
                                 text = text.Substring(2);
                                 break;
                             case "`l": // TODO Case sensitive?
-                                Crt.Delay(500);
+                                Thread.Sleep(500);
                                 text = text.Substring(2);
                                 break;
                             case "`w": // TODO Case sensitive?
-                                Crt.Delay(100);
+                                Thread.Sleep(100);
                                 text = text.Substring(2);
                                 break;
                             case "`x": // TODO Case sensitive?
@@ -1201,35 +1201,35 @@ namespace RandM.RMLib
                                 switch (BackTick3.ToLower())
                                 {
                                     case "`r0":
-                                        this.TextBackground(Crt.Black);
+                                        TextBackground(Crt.Black);
                                         text = text.Substring(3);
                                         break;
                                     case "`r1":
-                                        this.TextBackground(Crt.Blue);
+                                        TextBackground(Crt.Blue);
                                         text = text.Substring(3);
                                         break;
                                     case "`r2":
-                                        this.TextBackground(Crt.Green);
+                                        TextBackground(Crt.Green);
                                         text = text.Substring(3);
                                         break;
                                     case "`r3":
-                                        this.TextBackground(Crt.Cyan);
+                                        TextBackground(Crt.Cyan);
                                         text = text.Substring(3);
                                         break;
                                     case "`r4":
-                                        this.TextBackground(Crt.Red);
+                                        TextBackground(Crt.Red);
                                         text = text.Substring(3);
                                         break;
                                     case "`r5":
-                                        this.TextBackground(Crt.Magenta);
+                                        TextBackground(Crt.Magenta);
                                         text = text.Substring(3);
                                         break;
                                     case "`r6":
-                                        this.TextBackground(Crt.Brown);
+                                        TextBackground(Crt.Brown);
                                         text = text.Substring(3);
                                         break;
                                     case "`r7":
-                                        this.TextBackground(Crt.LightGray);
+                                        TextBackground(Crt.LightGray);
                                         text = text.Substring(3);
                                         break;
                                     default:
