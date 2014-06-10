@@ -236,28 +236,28 @@ namespace RandM.RMLib
                     OnHangUp();
                 }
 
-                // Check For Idle Timeout
-                if ((Session.DoIdleCheck) && (TimeIdle() > Session.MaxIdle) && (OnTimeOut != null))
-                {
-                    OnTimeOut();
-                }
-
-                // Check For Idle Timeout Warning
-                if ((Session.DoIdleCheck) && ((Session.MaxIdle - TimeIdle()) % 60 == 1) && ((Session.MaxIdle - TimeIdle()) / 60 <= 5) && (OnTimeOutWarning != null))
-                {
-                    OnTimeOutWarning((int)(Session.MaxIdle - TimeIdle()) / 60);
-                }
-
                 // Check For Time Up
                 if ((TimeLeft() < 1) && (OnTimeUp != null))
                 {
                     OnTimeUp();
                 }
 
+                // Check For Idle Timeout
+                if ((Session.DoIdleCheck) && (TimeIdle() > Session.MaxIdle) && (OnTimeOut != null))
+                {
+                    OnTimeOut();
+                }
+
                 // Check For Time Up Warning
                 if ((TimeLeft() % 60 == 1) && (TimeLeft() / 60 <= 5) && (OnTimeUpWarning != null))
                 {
                     OnTimeUpWarning((int)(TimeLeft() / 60));
+                }
+
+                // Check For Idle Timeout Warning
+                if ((Session.DoIdleCheck) && ((Session.MaxIdle - TimeIdle()) % 60 == 1) && ((Session.MaxIdle - TimeIdle()) / 60 <= 5) && (OnTimeOutWarning != null))
+                {
+                    OnTimeOutWarning((int)(Session.MaxIdle - TimeIdle()) / 60);
                 }
 
                 // Update Status Bar
@@ -839,6 +839,7 @@ namespace RandM.RMLib
                 }
 
                 LastKey.Time = DateTime.Now;
+                Session.DoIdleCheck = true;
                 Session.Events = true;
                 Session.EventsTime = DateTime.Now.AddSeconds(-1);
                 Session.TimeOn = DateTime.Now;
