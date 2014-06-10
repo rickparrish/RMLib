@@ -264,12 +264,9 @@ namespace RandM.RMLib
                 }
 
                 // Update Status Bar
-                if (OSUtils.IsWindows)
+                if (OnStatusBar != null)
                 {
-                    if (OnStatusBar != null)
-                    {
-                        OnStatusBar();
-                    }
+                    OnStatusBar();
                 }
 
                 Session.EventsTime = DateTime.Now;
@@ -735,10 +732,10 @@ namespace RandM.RMLib
                     {
                         ClrScr();
                         WriteLn();
-                        WriteLn("  Drop File Not Fount");
+                        WriteLn("  Drop File Not Found");
                         WriteLn();
                         Thread.Sleep(2500);
-                        Environment.Exit(0);
+                        throw new Exception("Drop File Not Found"); //Environment.Exit(0);
                     }
 
                 }
@@ -746,13 +743,6 @@ namespace RandM.RMLib
             else if (OnUsage != null)
             {
                 OnUsage();
-            }
-
-            if (!OSUtils.IsWindows)
-            {
-                Local = true;
-                DropInfo.ComType = 0;
-                DropInfo.SocketHandle = -1;
             }
 
             if (!Local)
@@ -764,7 +754,7 @@ namespace RandM.RMLib
                     WriteLn("  No Carrier Detected");
                     WriteLn();
                     Thread.Sleep(2500);
-                    Environment.Exit(0);
+                    throw new Exception("No Carrier Detected"); //Environment.Exit(0);
                 }
 
                 LastKey.Time = DateTime.Now;
@@ -1174,7 +1164,7 @@ namespace RandM.RMLib
             WriteLn();
             WriteLn("   Caller Dropped Carrier.  Returning To BBS...");
             Thread.Sleep(2500);
-            Environment.Exit(0);
+            throw new Exception("Caller Dropped Carrier"); //Environment.Exit(0);
         }
 
         public delegate void OnLocalLoginCallback();
@@ -1216,7 +1206,7 @@ namespace RandM.RMLib
             WriteLn();
             WriteLn("   Idle Time Limit Exceeded.  Returning To BBS...");
             Thread.Sleep(2500);
-            Environment.Exit(0);
+            throw new Exception("Idle Time Limit Exceeded"); //Environment.Exit(0);
         }
 
         public delegate void OnTimeOutWarningCallback(int AMinutesLeft);
@@ -1231,7 +1221,7 @@ namespace RandM.RMLib
             WriteLn();
             WriteLn("   Your Time Has Expired.  Returning To BBS...");
             Thread.Sleep(2500);
-            Environment.Exit(0);
+            throw new Exception("Your Time Has Expired"); //Environment.Exit(0);
         }
 
         public delegate void OnTimeUpWarningCallback(int AMinutesLeft);
@@ -1266,7 +1256,7 @@ namespace RandM.RMLib
             WriteLn(" " + EXE + " -C4 -H2000 -N2");
             WriteLn("  -  Open WebSocket Socket Handle 2000 On Node #2");
             Thread.Sleep(2500);
-            Environment.Exit(0);
+            throw new Exception("Usage"); //Environment.Exit(0);
         }
 
         #endregion

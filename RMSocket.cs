@@ -15,13 +15,13 @@ namespace RandM.RMLib
             {
                 NativeMethods.WSAData WSA = new NativeMethods.WSAData();
                 SocketError Result = NativeMethods.WSAStartup((short)0x0202, out WSA);
-                if (Result != SocketError.Success)
+                if (Result == SocketError.Success)
                 {
-                    SocketHandle = IntPtr.Zero;
+                    SocketHandle = new IntPtr(socketHandle);
                 }
                 else
                 {
-                    SocketHandle = new IntPtr(socketHandle);
+                    SocketHandle = IntPtr.Zero;
                 }
             }
             else
