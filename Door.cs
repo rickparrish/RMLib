@@ -441,14 +441,13 @@ namespace RandM.RMLib
         /// <returns>True if a keypress is waiting, false if no keypress is available</returns>
         public bool KeyPressed()
         {
-            DoEvents();
-
             if (Local)
             {
                 return Crt.KeyPressed();
             }
             else
             {
+                DoEvents();
                 return (Crt.KeyPressed() || (_Socket.ReadQueueSize > 0));
             }
         }
