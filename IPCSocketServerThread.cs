@@ -190,7 +190,7 @@ namespace RandM.RMLib
 
         public void SendMessage(string command)
         {
-            _ClientConnection.Write(command + IPCSocketServerThread.EndStatement);
+            _ClientConnection.Write(command.Replace(IPCSocketServerThread.EndStatement.ToString(), "") + IPCSocketServerThread.EndStatement);
         }
     }
 }
