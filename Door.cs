@@ -549,6 +549,41 @@ namespace RandM.RMLib
         public bool PipeWrite { get; set; }
 
         /// <summary>
+        /// Reads a byte from either the local or remote side with no translation
+        /// </summary>
+        /// <returns>A byte if one was available, or null if no key was waiting</returns>
+        public byte? ReadByte()
+        {
+            byte? B = null;
+            LastKey.Location = DoorKeyLocation.None;
+            do
+            {
+                while (!KeyPressed())
+                {
+                    Thread.Sleep(1); // TODO Should not be here
+                }
+                if (Crt.KeyPressed())
+                {
+                    B = (byte)Crt.ReadKey();
+                    LastKey.Location = DoorKeyLocation.Local;
+                }
+                else if ((!Local) && (_Socket.ReadQueueSize > 0))
+                {
+                    B = _Socket.ReadByte();
+                    LastKey.Location = DoorKeyLocation.Remote;
+                }
+            } while (LastKey.Location == DoorKeyLocation.None);
+
+            if (B != null)
+            {
+                LastKey.Ch = (char)B;
+                LastKey.Time = DateTime.Now;
+            }
+
+            return B;
+        }
+
+        /// <summary>
         /// Reads a key from either the local or remote side
         /// </summary>
         /// <returns>A key if one was available, or null if no key was waiting</returns>
@@ -857,6 +892,7 @@ namespace RandM.RMLib
                 }
             }
 
+            Crt.Window(1, 1, 80, 24);
             ClrScr();
         }
 
@@ -1475,11 +1511,11 @@ namespace RandM.RMLib
         public delegate void OnStatusBarCallback();
         private void DefaultOnStatusBar()
         {
-            Crt.FastWrite("þ ___User Name Goes Here____ þ R&M Door Library þ Idle: xx:xx þ Left: xx:xx:xx þ", 1, 25, 30);
-            Crt.FastWrite((DropInfo.RealName + new string(' ', 23)).Substring(0, 23), 3, 25, 31);
+            Crt.FastWrite("þ                            þ                  þ             þ                þ", 1, 25, 30);
+            Crt.FastWrite((DropInfo.RealName + new string(' ', 26)).Substring(0, 26), 3, 25, 31);
             Crt.FastWrite("R&M Door Library", 32, 25, 31);
-            Crt.FastWrite(("Idle: " + StringUtils.SecToMS(SecondsIdle) + "s" + new string(' ', 11)).Substring(0, 11), 52, 25, 31);
-            Crt.FastWrite("Left: " + StringUtils.SecToHMS(SecondsLeft) + "s", 66, 25, 31);
+            Crt.FastWrite(("Idle: " + StringUtils.SecToMS(SecondsIdle) + new string(' ', 11)).Substring(0, 11), 51, 25, 31);
+            Crt.FastWrite(("Left: " + StringUtils.SecToHMS(SecondsLeft) + new string(' ', 14)).Substring(0, 14), 65, 25, 31);
         }
 
         /// <summary>
@@ -1793,7 +1829,7 @@ namespace RandM.RMLib
         /// <summary>
         /// The time the events last ran (used to ensure events only fire once per second)
         /// </summary>
-        public DateTime EventsTime = DateTime.Now;
+        public DateTime EventsTime = DateTime.MinValue;
 
         /// <summary>
         /// The maximum amount of seconds a user can idle before they're booted
