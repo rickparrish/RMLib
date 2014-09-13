@@ -39,12 +39,10 @@ namespace RandM.RMLib
         protected const int READ_BUFFER_SIZE = 64 * 1024;   // 64k input buffer
 
         // Protected variables
-        protected Queue<byte> _InputBuffer = new Queue<byte>();
-        protected Queue<byte> _OutputBuffer = new Queue<byte>();
-        protected Char _LastChar = '\0';
         protected string _LocalHost = "";
         protected string _LocalIP = "";
         protected Int32 _LocalPort = 0;
+        protected Queue<byte> _OutputBuffer = new Queue<byte>();
         protected string _RemoteHost = "";
         protected string _RemoteIP = "";
         protected Int32 _RemotePort = 0;
@@ -53,11 +51,14 @@ namespace RandM.RMLib
         // Private variables
         private IntPtr _DuplicateHandle = IntPtr.Zero;
         private bool _Disposed = false;
+        private Queue<byte> _InputBuffer = new Queue<byte>();
+        private byte _LastByte = 0;
 
         // Public properties
         public string LineEnding { get; set; }
         public bool ReadTimedOut { get; private set; }
         public bool StripLF { get; set; }
+        public bool StripNull { get; set; }
 
         public TcpConnection()
         {
@@ -141,6 +142,23 @@ namespace RandM.RMLib
                 Debug.WriteLine("Exception in TCPSocket::AcceptTCP(): " + ex.ToString());
                 return null;
             }
+        }
+
+        protected void AddToInputQueue(byte data)
+        {
+            if (StripLF && (_LastByte == 0x0D) && (data == 0x0A))
+            {
+                // Ignore LF following CR
+            }
+            else if (StripNull && (_LastByte == 0x0D) && (data == 0x00))
+            {
+                // Ignore NULL following CR
+            }
+            else
+            {
+                _InputBuffer.Enqueue(data);
+            }
+            _LastByte = data;
         }
 
         public bool CanAccept()
@@ -378,7 +396,6 @@ namespace RandM.RMLib
 
             _InputBuffer.Clear();
             _OutputBuffer.Clear();
-            _LastChar = '\0';
             LineEnding = "\r\n";
             _LocalHost = "";
             _LocalIP = "";
@@ -627,6 +644,18 @@ namespace RandM.RMLib
             return _InputBuffer.ToArray();
         }
 
+        public char? PeekChar()
+        {
+            if (_InputBuffer.Count == 0)
+            {
+                return null;
+            }
+            else
+            {
+                return (char)_InputBuffer.Peek();
+            }
+        }
+
         public string PeekString()
         {
             return RMEncoding.Ansi.GetString(_InputBuffer.ToArray());
@@ -659,28 +688,10 @@ namespace RandM.RMLib
             while (true)
             {
                 if (!Connected) return null;
-
-                while (CanRead())
+                
+                if (CanRead())
                 {
-                    Ch = (char)_InputBuffer.Dequeue();
-
-                    if (StripLF)
-                    {
-                        // When StripLF is enabled, we strip the LF from CR+LF pairs
-                        if ((Ch != '\n') || ((Ch == '\n') && (_LastChar != '\r')))
-                        {
-                            // We also convert bare LF into CR
-                            if (Ch == '\n') Ch = '\r';
-
-                            _LastChar = (char)Ch;
-                            return Ch;
-                        }
-                    }
-                    else
-                    {
-                        _LastChar = (char)Ch;
-                        return Ch;
-                    }
+                    return (char)_InputBuffer.Dequeue();
                 }
 
                 if ((timeOut != 0) && (DateTime.Now.Subtract(StartTime).TotalMilliseconds > timeOut))

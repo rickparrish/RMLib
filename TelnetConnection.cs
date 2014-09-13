@@ -49,7 +49,7 @@ namespace RandM.RMLib
                     }
                     else
                     {
-                        _InputBuffer.Enqueue(data[i]);
+                        AddToInputQueue(data[i]);
                     }
                 }
                 else if (_TelnetNegotiationState == TelnetNegotiationState.IAC)
@@ -57,7 +57,7 @@ namespace RandM.RMLib
                     if (data[i] == (byte)TelnetCommand.IAC)
                     {
                         _TelnetNegotiationState = TelnetNegotiationState.Data;
-                        _InputBuffer.Enqueue(data[i]);
+                        AddToInputQueue(data[i]);
                     }
                     else
                     {

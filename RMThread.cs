@@ -26,6 +26,7 @@ namespace RandM.RMLib
     {
         protected volatile bool _Paused = false;
         protected volatile bool _Stop = false;
+        protected AutoResetEvent _StopEvent = new AutoResetEvent(false);
         private Thread _Thread = null;
 
         public bool Aborted { get { return _Stop; } }
@@ -57,6 +58,7 @@ namespace RandM.RMLib
         public virtual void Stop()
         {
             _Stop = true;
+            _StopEvent.Set();
         }
 
         public virtual void WaitFor()

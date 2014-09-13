@@ -70,7 +70,7 @@ namespace RandM.RMLib
                     }
                     else
                     {
-                        _InputBuffer.Enqueue(data[i]);
+                        AddToInputQueue(data[i]);
                     }
                 }
 

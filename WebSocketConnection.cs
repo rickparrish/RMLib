@@ -96,7 +96,7 @@ namespace RandM.RMLib
             {
                 for (int i = 0; i < numberOfBytes; i++)
                 {
-                    _InputBuffer.Enqueue(data[i]);
+                    AddToInputQueue(data[i]);
                 }
             }
         }
@@ -136,14 +136,14 @@ namespace RandM.RMLib
                             // Check if the byte needs to be UTF-8 decoded
                             if (data[i] < 128)
                             {
-                                _InputBuffer.Enqueue(data[i]);
+                                AddToInputQueue(data[i]);
                             }
                             else if ((data[i] > 191) && (data[i] < 224))
                             {
                                 // Handle UTF-8 decode
                                 if (i < (numberOfBytes - 1))
                                 {
-                                    _InputBuffer.Enqueue((byte)(((data[i] & 31) << 6) | (data[++i] & 63)));
+                                    AddToInputQueue((byte)(((data[i] & 31) << 6) | (data[++i] & 63)));
                                 }
                                 else
                                 {
@@ -155,7 +155,7 @@ namespace RandM.RMLib
                                 // Handle UTF-8 decode (should never need this, but included anyway)
                                 if (i < (numberOfBytes - 2))
                                 {
-                                    _InputBuffer.Enqueue((byte)(((data[i] & 15) << 12) | ((data[++i] & 63) << 6) | (data[++i] & 63)));
+                                    AddToInputQueue((byte)(((data[i] & 15) << 12) | ((data[++i] & 63) << 6) | (data[++i] & 63)));
                                 }
                                 else if (i < (numberOfBytes - 1))
                                 {
@@ -258,7 +258,7 @@ namespace RandM.RMLib
                         // Check if the byte needs to be UTF-8 decoded
                         if (UnMaskedByte < 128)
                         {
-                            _InputBuffer.Enqueue(UnMaskedByte);
+                            AddToInputQueue(UnMaskedByte);
                         }
                         else if ((UnMaskedByte > 191) && (UnMaskedByte < 224))
                         {
@@ -266,7 +266,7 @@ namespace RandM.RMLib
                             if (i < (numberOfBytes - 1))
                             {
                                 byte UnMaskedByte2 = (byte)(data[++i] ^ _FrameMask[_FramePayloadReceived++ % 4]);
-                                _InputBuffer.Enqueue((byte)(((UnMaskedByte & 31) << 6) | (UnMaskedByte2 & 63)));
+                                AddToInputQueue((byte)(((UnMaskedByte & 31) << 6) | (UnMaskedByte2 & 63)));
                             }
                             else
                             {
@@ -280,7 +280,7 @@ namespace RandM.RMLib
                             {
                                 byte UnMaskedByte2 = (byte)(data[++i] ^ _FrameMask[_FramePayloadReceived++ % 4]);
                                 byte UnMaskedByte3 = (byte)(data[++i] ^ _FrameMask[_FramePayloadReceived++ % 4]);
-                                _InputBuffer.Enqueue((byte)(((UnMaskedByte & 15) << 12) | ((UnMaskedByte2 & 63) << 6) | (UnMaskedByte3 & 63)));
+                                AddToInputQueue((byte)(((UnMaskedByte & 15) << 12) | ((UnMaskedByte2 & 63) << 6) | (UnMaskedByte3 & 63)));
                             }
                             else if (i < (numberOfBytes - 1))
                             {

@@ -57,8 +57,8 @@ namespace RandM.RMLib
         /// </summary>
         public TSession Session = new TSession();
 
+        private TcpConnection _Connection = null;
         private bool _Disposed = false;
-        private RMSocket _Socket = null;
 
         #region Standard R&M Door functions
 
@@ -124,10 +124,10 @@ namespace RandM.RMLib
                 // unmanaged resources here.
                 // If disposing is false,
                 // only the following code is executed.
-                if (_Socket != null)
+                if (_Connection != null)
                 {
-                    _Socket.Close();
-                    _Socket = null;
+                    _Connection.Close();
+                    _Connection = null;
                 }
 
                 // Note disposing has been done.
@@ -141,7 +141,7 @@ namespace RandM.RMLib
         /// <returns>True if local or carrier exists, false if no carrier exists</returns>
         public bool Carrier
         {
-            get { return (Local || _Socket.Connected); }
+            get { return (Local || _Connection.Connected); }
         }
 
         /// <summary>
@@ -154,7 +154,7 @@ namespace RandM.RMLib
 
             if (!Local)
             {
-                _Socket.ClearBuffers();
+                _Connection.ReadString();
             }
         }
 
@@ -165,9 +165,9 @@ namespace RandM.RMLib
         {
             if (!Local)
             {
-                _Socket.Shutdown();
-                _Socket.Close();
-                _Socket = null;
+                _Connection.ShutdownOnClose = true;
+                _Connection.Close();
+                _Connection = null;
             }
 
             DropInfo.SocketHandle = -1;
@@ -448,7 +448,7 @@ namespace RandM.RMLib
             else
             {
                 DoEvents();
-                return (Crt.KeyPressed() || (_Socket.ReadQueueSize > 0));
+                return (Crt.KeyPressed() || _Connection.CanRead());
             }
         }
 
@@ -513,10 +513,16 @@ namespace RandM.RMLib
             }
             else
             {
-                _Socket = new RMSocket(DropInfo.SocketHandle);
-                // TODO Set blocking I/O
-                // TODO Send WILL ECHO and WILL BINARY?
-                return _Socket.Connected;
+                switch (DropInfo.ComType)
+                {
+                    case 2: _Connection = new TelnetConnection(); break;
+                    case 3: _Connection = new RLoginConnection(); break;
+                    case 4: _Connection = new WebSocketConnection(false); break;
+                }
+                _Connection.Open(DropInfo.SocketHandle);
+                _Connection.ShutdownOnClose = false;
+
+                return _Connection.Connected;
             }
         }
 
@@ -567,9 +573,9 @@ namespace RandM.RMLib
                     B = (byte)Crt.ReadKey();
                     LastKey.Location = DoorKeyLocation.Local;
                 }
-                else if ((!Local) && (_Socket.ReadQueueSize > 0))
+                else if (!Local && _Connection.CanRead())
                 {
-                    B = _Socket.ReadByte();
+                    B = (byte)_Connection.ReadChar(0);
                     LastKey.Location = DoorKeyLocation.Remote;
                 }
             } while (LastKey.Location == DoorKeyLocation.None);
@@ -640,41 +646,41 @@ namespace RandM.RMLib
                         LastKey.Location = DoorKeyLocation.Local;
                     }
                 }
-                else if ((!Local) && (_Socket.ReadQueueSize > 0))
+                else if (!Local && _Connection.CanRead())
                 {
-                    Ch = (char)_Socket.ReadByte();
+                    Ch = _Connection.ReadChar(0);
                     if (Ch == '\x1B')
                     {
                         // ESC, check if we have more data
-                        if (_Socket.ReadQueueSize == 0)
+                        if (!_Connection.CanRead())
                         {
                             // No data waiting, so wait 1/10th of a second to see if more data comes
                             Thread.Sleep(100);
                         }
 
                         // Check if we have data to follow the ESC
-                        if (_Socket.ReadQueueSize > 0)
+                        if (_Connection.CanRead())
                         {
                             // We have more data, see if it's a [
-                            char SecondChar = (char)_Socket.PeekByte();
+                            char SecondChar = (char)_Connection.PeekChar();
                             if (SecondChar == '[')
                             {
                                 // Consume the [ since it's most likely part of an escape sequence (if someone actually hit ESC and [ on their own, tough luck)
-                                _Socket.ReadByte();
+                                _Connection.ReadChar(0);
 
                                 // Now we have ESC[, see if we have more data
-                                if (_Socket.ReadQueueSize == 0)
+                                if (!_Connection.CanRead())
                                 {
                                     // No data waiting, so wait 1/10th of a second to see if more data comes
                                     Thread.Sleep(100);
                                 }
 
                                 // Check if we have data to follow the ESC[
-                                if (_Socket.ReadQueueSize > 0)
+                                if (_Connection.CanRead())
                                 {
                                     // We have more data, see if it's a sequence we handle
                                     // TODO Not all sequences are ESC[ followed by a single byte, ie F1
-                                    char ThirdChar = (char)_Socket.ReadByte();
+                                    char ThirdChar = (char)_Connection.ReadChar(0);
                                     switch (ThirdChar)
                                     {
                                         case 'A':
@@ -702,11 +708,21 @@ namespace RandM.RMLib
                             }
                             else
                             {
+                                // ESC not followed by [
+                                LastKey.Extended = false;
+                                LastKey.Location = DoorKeyLocation.Remote;
                             }
+                        }
+                        else
+                        {
+                            // ESC not followed by anything
+                            LastKey.Extended = false;
+                            LastKey.Location = DoorKeyLocation.Remote;
                         }
                     }
                     else
                     {
+                        // Not an ESC
                         LastKey.Extended = false;
                         LastKey.Location = DoorKeyLocation.Remote;
                     }
@@ -909,14 +925,14 @@ namespace RandM.RMLib
                 }
                 else
                 {
-                    return _Socket.StripLF;
+                    return _Connection.StripLF;
                 }
             }
             set
             {
                 if (!Local)
                 {
-                    _Socket.StripLF = value;
+                    _Connection.StripLF = value;
                 }
             }
         }
@@ -934,14 +950,14 @@ namespace RandM.RMLib
                 }
                 else
                 {
-                    return _Socket.StripNull;
+                    return _Connection.StripNull;
                 }
             }
             set
             {
                 if (!Local)
                 {
-                    _Socket.StripNull = value;
+                    _Connection.StripNull = value;
                 }
             }
         }
@@ -1197,13 +1213,13 @@ namespace RandM.RMLib
                         {
                             string BeforeBackTick = text.Substring(0, text.IndexOf('`'));
                             Ansi.Write(BeforeBackTick);
-                            if (!Local) _Socket.WriteString(BeforeBackTick);
+                            if (!Local) _Connection.Write(BeforeBackTick);
                             text = text.Substring(BeforeBackTick.Length);
                         }
                         else
                         {
                             Ansi.Write(text);
-                            if (!Local) _Socket.WriteString(text);
+                            if (!Local) _Connection.Write(text);
                             text = "";
                         }
                     }
@@ -1216,7 +1232,7 @@ namespace RandM.RMLib
                         {
                             case "``":
                                 Ansi.Write("`");
-                                if (!Local) _Socket.WriteString("`");
+                                if (!Local) _Connection.Write("`");
                                 text = text.Substring(2);
                                 break;
                             case "`1":
@@ -1291,12 +1307,12 @@ namespace RandM.RMLib
                                 TextAttr(7);
                                 ClrScr();
                                 Ansi.Write("\r\n\r\n");
-                                if (!Local) _Socket.WriteString("\r\n\r\n");
+                                if (!Local) _Connection.Write("\r\n\r\n");
                                 text = text.Substring(2);
                                 break;
                             case "`d": // TODO Case sensitive?
                                 Ansi.Write("\x08");
-                                if (!Local) _Socket.WriteString("\x08");
+                                if (!Local) _Connection.Write("\x08");
                                 text = text.Substring(2);
                                 break;
                             case "`k": // TODO Case sensitive?
@@ -1315,12 +1331,12 @@ namespace RandM.RMLib
                                 break;
                             case "`x": // TODO Case sensitive?
                                 Ansi.Write(" ");
-                                if (!Local) _Socket.WriteString(" ");
+                                if (!Local) _Connection.Write(" ");
                                 text = text.Substring(2);
                                 break;
                             case "`\\":
                                 Ansi.Write("\r\n");
-                                if (!Local) _Socket.WriteString("\r\n");
+                                if (!Local) _Connection.Write("\r\n");
                                 text = text.Substring(2);
                                 break;
                             case "`|":
@@ -1370,7 +1386,7 @@ namespace RandM.RMLib
                                     default:
                                         // No match, so output the backtick
                                         Ansi.Write("`");
-                                        if (!Local) _Socket.WriteString("`");
+                                        if (!Local) _Connection.Write("`");
                                         text = text.Substring(1);
                                         break;
                                 }
@@ -1382,7 +1398,7 @@ namespace RandM.RMLib
             else
             {
                 Ansi.Write(text);
-                if (!Local) _Socket.WriteString(text);
+                if (!Local) _Connection.Write(text);
             }
         }
 
@@ -1685,7 +1701,7 @@ namespace RandM.RMLib
         Remote
     }
 
-    
+
     /// <summary>
     /// When a dropfile is read there is some useless information so it is not
     /// necessary to store the whole thing in memory.  Instead only certain
@@ -1706,57 +1722,57 @@ namespace RandM.RMLib
         /// User's alias.  DOOR32.SYS and INFO.*
         /// </summary>
         public string Alias = "Alias";
-        
+
         /// <summary>
         /// Connection baud rate.  DOOR32.SYS and INFO.*
         /// </summary>
         public int Baud = 0;
-        
+
         /// <summary>
         /// Is LORD in "clean" mode?  INFO.* only
         /// </summary>
         public bool Clean = false;
-        
+
         /// <summary>
         /// Com type (0=local, 1=serial, 2=telnet, 3=rlogin, 4=websocket)  DOOR32.SYS only
         /// </summary>
         public int ComType = 0;
-        
+
         /// <summary>
         /// User's emulation (ANSI or ASCII)  DOOR32.SYS and INFO.*
         /// </summary>
         public DoorEmulationType Emulation = DoorEmulationType.ANSI;
-        
+
         /// <summary>
         /// Does user have a fairy?  INFO.* only
         /// </summary>
         public bool Fairy = false;
-        
+
         /// <summary>
         /// Total seconds user has this session.  DOOR32.SYS and INFO.*
         /// </summary>
         public int MaxTime = 3600;
-        
+
         /// <summary>
         /// Node number.  DOOR32.SYS only
         /// </summary>
         public int Node = 0;
-        
+
         /// <summary>
         /// User's real name.  DOOR32.SYS and INFO.*
         /// </summary>
         public string RealName = "Real Name";
-        
+
         /// <summary>
         /// User's user file record position (0 based)  DOOR32.SYS and INFO.*
         /// </summary>
         public int RecPos = -1;
-        
+
         /// <summary>
         /// Is LORD registered?  INFO.* only
         /// </summary>
         public bool Registered = false;
-        
+
         /// <summary>
         /// Socket handle.  DOOR32.SYS and INFO.*
         /// </summary>
@@ -1773,17 +1789,17 @@ namespace RandM.RMLib
         /// Character code for last key that was pressed
         /// </summary>
         public char Ch = '\0';
-        
+
         /// <summary>
         /// Was the last keypress an extended key (ie cursor or F1, etc)
         /// </summary>
         public bool Extended = false;
-        
+
         /// <summary>
         /// Which side pressed the last key (LOCAL or REMOTE)
         /// </summary>
         public DoorKeyLocation Location = DoorKeyLocation.None;
-        
+
         /// <summary>
         /// The time the last key was pressed
         /// </summary>
@@ -1798,17 +1814,17 @@ namespace RandM.RMLib
         /// <summary>
         /// The ANSI prompt to use for the More() method
         /// </summary>
-        public string ANSI = "|07 |0A<|02MORE|0A>"; 
+        public string ANSI = "|07 |0A<|02MORE|0A>";
 
         /// <summary>
         /// The visible length of the ANSI prompt (needed to ensure it gets erased correctly)
         /// </summary>
         public int ANSILength = 7;
-        
+
         /// <summary>
         /// The ASCII prompt to use for the More() method
         /// </summary>
-        public string ASCII = " <MORE>"; 
+        public string ASCII = " <MORE>";
     }
 
     /// <summary>
@@ -1819,13 +1835,13 @@ namespace RandM.RMLib
         /// <summary>
         /// Run the idle warning and timeout events?
         /// </summary>
-        public bool DoIdleCheck = true; 
-        
+        public bool DoIdleCheck = true;
+
         /// <summary>
         /// Run the various door related events?  (ie time warning, time up, update status bar, etc)
         /// </summary>
-        public bool Events = true; 
-        
+        public bool Events = true;
+
         /// <summary>
         /// The time the events last ran (used to ensure events only fire once per second)
         /// </summary>
@@ -1835,7 +1851,7 @@ namespace RandM.RMLib
         /// The maximum amount of seconds a user can idle before they're booted
         /// </summary>
         public int MaxIdle = 300;
-        
+
         /// <summary>
         /// The time the door was launched
         /// </summary>
