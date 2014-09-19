@@ -95,6 +95,7 @@ namespace RandM.RMLib
                         case TelnetOption.Echo: SendWill(data[i]); break;
                         case TelnetOption.SuppressGoAhead: SendWill(data[i]); break;
                         case TelnetOption.WindowSize: SendWont(data[i]); break;
+                        case TelnetOption.TerminalType: SendWont(data[i]); break;
                         case TelnetOption.LineMode: SendWont(data[i]); break;
                         default: SendWont(data[i]); break;
                     }
@@ -108,6 +109,7 @@ namespace RandM.RMLib
                         case TelnetOption.Echo: SendWill(data[i]); break;
                         case TelnetOption.SuppressGoAhead: SendWill(data[i]); break;
                         case TelnetOption.WindowSize: SendWont(data[i]); break;
+                        case TelnetOption.TerminalType: SendWont(data[i]); break;
                         case TelnetOption.LineMode: SendWont(data[i]); break;
                         default: SendWont(data[i]); break;
                     }
@@ -121,6 +123,7 @@ namespace RandM.RMLib
                         case TelnetOption.Echo: SendDont(data[i]); break;
                         case TelnetOption.SuppressGoAhead: SendDo(data[i]); break;
                         case TelnetOption.WindowSize: SendDont(data[i]); break;
+                        case TelnetOption.TerminalType: SendSubnegotiate(data[i]); break;
                         case TelnetOption.LineMode: SendDont(data[i]); break;
                         default: SendDont(data[i]); break;
                     }
@@ -134,6 +137,7 @@ namespace RandM.RMLib
                         case TelnetOption.Echo: SendDont(data[i]); break;
                         case TelnetOption.SuppressGoAhead: SendDo(data[i]); break;
                         case TelnetOption.WindowSize: SendDont(data[i]); break;
+                        case TelnetOption.TerminalType: SendDont(data[i]); break;
                         case TelnetOption.LineMode: SendDont(data[i]); break;
                         default: SendDont(data[i]); break;
                     }
@@ -145,6 +149,7 @@ namespace RandM.RMLib
                     // First byte of subnegotiation should be the option to negotiate
                     switch ((TelnetOption)data[i])
                     {
+                        case TelnetOption.TerminalType:
                         case TelnetOption.WindowSize:
                             // Known option
                             _SubnegotiationOption = (TelnetOption)data[i];
@@ -178,6 +183,15 @@ namespace RandM.RMLib
                         case TelnetCommand.EndSubnegotiation:
                             // Subnegotiation has ended
                             // TODO Do something with FSubnegotiationData based on FSubnegotiationOption
+                            switch (_SubnegotiationOption)
+                            {
+                                case TelnetOption.TerminalType:
+                                    // TODO
+                                    break;
+                                case TelnetOption.WindowSize:
+                                    // TODO
+                                    break;
+                            }
                             _TelnetNegotiationState = TelnetNegotiationState.Data;
                             break;
                         default: 
@@ -259,6 +273,21 @@ namespace RandM.RMLib
         private void SendIAC(TelnetCommand command, TelnetOption option)
         {
             SendIAC(command, (byte)option);
+        }
+
+        public void SendSubnegotiate(TelnetOption option)
+        {
+            SendSubnegotiate((byte)option);
+        }
+
+        public void SendSubnegotiate(byte option)
+        {
+            base.WriteRaw(new byte[] { (byte)TelnetCommand.IAC,
+                                       (byte)TelnetCommand.Subnegotiation,
+                                       option,
+                                       1, // TODO This is for SEND in Terminal Type
+                                       (byte)TelnetCommand.IAC,
+                                       (byte)TelnetCommand.EndSubnegotiation });
         }
 
         public void SendWill(byte option)
@@ -458,6 +487,8 @@ namespace RandM.RMLib
         /// Default is to not suppress go aheads.
         /// </remarks>
         SuppressGoAhead = 3,
+
+        TerminalType = 24,
 
         /// <summary>
         /// Allows the NAWS (negotiate about window size) subnegotiation command to be used if both sides agree

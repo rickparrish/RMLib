@@ -860,7 +860,7 @@ namespace RandM.RMLib
             Write(text + "\r\n");
         }
 
-        protected void WriteRaw(byte[] data)
+        public void WriteRaw(byte[] data)
         {
             if (Connected)
             {
