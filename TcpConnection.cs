@@ -683,7 +683,6 @@ namespace RandM.RMLib
         {
             DateTime StartTime = DateTime.Now;
             ReadTimedOut = false;
-            char? Ch = null;
 
             while (true)
             {
