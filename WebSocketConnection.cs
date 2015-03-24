@@ -558,7 +558,7 @@ namespace RandM.RMLib
                                   "Connection: Upgrade\r\n" +
                                   "Sec-WebSocket-Origin: " + _Header["Origin"] + "\r\n" +
                                   "Sec-WebSocket-Location: ws://" + _Header["Host"] + _Header["Path"] + "\r\n";
-                if (_Header.ContainsKey("SubProtocol")) Response += "Sec-WebSocket-Protocol: " + _Header["SubProtocol"] + "\r\n";
+                if (_Header.ContainsKey("SubProtocol")) Response += "Sec-WebSocket-Protocol: plain\r\n"; // Only sub-protocol we support
                 Response += "\r\n";
 
                 // Send the response and return
