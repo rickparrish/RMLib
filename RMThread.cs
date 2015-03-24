@@ -50,6 +50,7 @@ namespace RandM.RMLib
 
             // Create Thread object
             _Thread = new Thread(Execute);
+            _Thread.IsBackground = true;
 
             // And start the thread
             _Thread.Start();
