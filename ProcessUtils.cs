@@ -46,6 +46,9 @@ namespace RandM.RMLib
             }
         }
 
+        /// <summary>
+        /// Returns the full path and filename to the .exe
+        /// </summary>
         public static string ExecutablePath
         {
             get { return Assembly.GetEntryAssembly().Location; }
@@ -159,6 +162,9 @@ namespace RandM.RMLib
             }
         }
 
+        /// <summary>
+        /// Returns the full path (without the filename) of the .exe
+        /// </summary>
         public static string StartupPath
         {
             get { return Path.GetDirectoryName(ExecutablePath); }
