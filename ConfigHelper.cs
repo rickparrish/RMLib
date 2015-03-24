@@ -101,6 +101,40 @@ namespace RandM.RMLib
         }
 
         /// <summary>
+        /// Basic delete method that deletes the currently stored section name
+        /// </summary>
+        /// <remarks>
+        /// If no section name has previously been stored, the default "CONFIGURATION" section will be deleted
+        /// </remarks>
+        protected void Delete()
+        {
+            Delete(SectionName);
+        }
+
+        /// <summary>
+        /// Advanced delete method that allows you to specify the section to delete
+        /// </summary>
+        /// <param name="sectionName">The section to delete within the INI</param>
+        protected void Delete(string sectionName)
+        {
+            // Store the section name
+            SectionName = sectionName;
+
+            // Load the application ini
+            using (IniFile Ini = new IniFile(FileName, IniPassword))
+            {
+
+                // Check if the desired section exists
+                if (Ini.SectionExists(sectionName))
+                {
+                    // Yep, so delete it
+                    Ini.EraseSection(sectionName);
+                    Ini.Save();
+                }
+            }
+        }
+
+        /// <summary>
         /// The name of the INI file to be read from / saved to
         /// </summary>
         public string FileName { get; protected set; }
