@@ -32,6 +32,7 @@ namespace RandM.RMLib
 
         public event EventHandler BindFailedEvent = null;
         public event EventHandler BoundEvent = null;
+        public event EventHandler<ConnectionAcceptedEventArgs> ConnectionAcceptedEvent = null;
         public event EventHandler<StringEventArgs> ErrorMessageEvent = null;
         public event EventHandler<StringEventArgs> MessageEvent = null;
         public event EventHandler<StringEventArgs> WarningMessageEvent = null;
@@ -101,6 +102,7 @@ namespace RandM.RMLib
                             string Request = NewConnection.ReadLn("\0", 5000);
                             if (Request.ToLower().Replace(" ", "") == "<policy-file-request/>")
                             {
+                                ConnectionAcceptedEventArgs.Raise(this, ConnectionAcceptedEvent, _Address, _Port, NewConnection.GetRemoteIP(), NewConnection.GetRemotePort());
                                 RaiseMessageEvent("Answered policy file request from " + NewConnection.GetRemoteIP() + ":" + NewConnection.GetRemotePort().ToString());
                                 
                                 NewConnection.WriteLn("<?xml version=\"1.0\"?>");
