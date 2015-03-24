@@ -34,13 +34,25 @@ namespace RandM.RMLib
         }
     }
 
-    public class RMProcessStartAndWaitEventArgs : EventArgs
+    public class ConnectionAcceptedEventArgs : EventArgs
     {
-        public bool Stop { get; set; }
-        
-        public RMProcessStartAndWaitEventArgs()
+        public string LocalIP { get; set; }
+        public int LocalPort { get; set; }
+        public string RemoteIP { get; set; }
+        public int RemotePort { get; set; }
+
+        public ConnectionAcceptedEventArgs(string localIP, int localPort, string remoteIP, int remotePort)
         {
-            Stop = false;
+            this.LocalIP = localIP;
+            this.LocalPort = localPort;
+            this.RemoteIP = remoteIP;
+            this.RemotePort = remotePort;
+        }
+
+        public static void Raise(object sender, EventHandler<ConnectionAcceptedEventArgs> Handler, string localIP, int localPort, string remoteIP, int remotePort)
+        {
+            EventHandler<ConnectionAcceptedEventArgs> LocalHandler = Handler;
+            if (LocalHandler != null) LocalHandler(sender, new ConnectionAcceptedEventArgs(localIP, localPort, remoteIP, remotePort));
         }
     }
 
@@ -78,6 +90,16 @@ namespace RandM.RMLib
         }
     }
 
+    public class RMProcessStartAndWaitEventArgs : EventArgs
+    {
+        public bool Stop { get; set; }
+
+        public RMProcessStartAndWaitEventArgs()
+        {
+            Stop = false;
+        }
+    }
+    
     public class StringEventArgs : EventArgs
     {
         public string Text { get; set; }
