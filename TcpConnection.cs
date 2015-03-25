@@ -26,6 +26,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Globalization;
+using System.IO;
 
 // If linux needs to be pinvoked, here's a sample:
 //[DllImport("libc")]
@@ -47,6 +48,7 @@ namespace RandM.RMLib
         protected string _RemoteIP = "";
         protected Int32 _RemotePort = 0;
         protected Socket _Socket = null;
+        protected Stream _Stream = null;
 
         // Private variables
         private IntPtr _DuplicateHandle = IntPtr.Zero;
@@ -212,7 +214,11 @@ namespace RandM.RMLib
                 {
                     Debug.WriteLine("Exception in TCPSocket::Close(): " + ex.ToString());
                 }
-                if (Connected) _Socket.Close();
+                if (Connected)
+                {
+                    _Stream.Close();
+                    _Socket.Close();
+                }
             }
 
             InitSocket();
@@ -233,6 +239,7 @@ namespace RandM.RMLib
                     _LocalPort = ((IPEndPoint)_Socket.LocalEndPoint).Port;
                     _RemoteIP = ((IPEndPoint)_Socket.RemoteEndPoint).Address.ToString();
                     _RemotePort = ((IPEndPoint)_Socket.RemoteEndPoint).Port;
+                    _Stream = new NetworkStream(_Socket);
                 }
                 return _Socket.Connected;
             }
@@ -371,6 +378,11 @@ namespace RandM.RMLib
             return _Socket;
         }
 
+        public Stream GetStream()
+        {
+            return _Stream;
+        }
+
         public IntPtr Handle
         {
             get
@@ -393,6 +405,7 @@ namespace RandM.RMLib
         protected virtual void InitSocket()
         {
             _Socket = null;
+            _Stream = null;
 
             _InputBuffer.Clear();
             _OutputBuffer.Clear();
@@ -596,6 +609,7 @@ namespace RandM.RMLib
 
                 _Socket = new Socket(SI);
                 _Socket.Blocking = true;
+                if (_Socket.Connected) _Stream = new NetworkStream(_Socket);
                 return _Socket.Connected;
             }
             catch (SocketException sex)
@@ -624,6 +638,7 @@ namespace RandM.RMLib
                     _LocalPort = ((IPEndPoint)_Socket.LocalEndPoint).Port;
                     _RemoteIP = ((IPEndPoint)_Socket.RemoteEndPoint).Address.ToString();
                     _RemotePort = ((IPEndPoint)_Socket.RemoteEndPoint).Port;
+                    _Stream = new NetworkStream(_Socket);
                 }
                 return _Socket.Connected;
             }
@@ -824,10 +839,11 @@ namespace RandM.RMLib
                 if ((Connected) && (_Socket.Poll(milliseconds * 1000, SelectMode.SelectRead)))
                 {
                     byte[] Buffer = new byte[READ_BUFFER_SIZE];
-                    int BytesRead = _Socket.Receive(Buffer);
+                    int BytesRead = _Stream.Read(Buffer, 0, READ_BUFFER_SIZE);
                     if (BytesRead == 0)
                     {
                         // No bytes read means we have a disconnect
+                        _Stream.Close();
                         _Socket.Close();
                     }
                     else
@@ -890,8 +906,8 @@ namespace RandM.RMLib
             {
                 try
                 {
-                    // In blocking mode, Send() will only return after successfully delivering all bytes
-                    _Socket.Send(data);
+                    // TODO Will this always write all the bytes?
+                    _Stream.Write(data, 0, data.Length);
                 }
                 catch (SocketException sex)
                 {
@@ -899,6 +915,7 @@ namespace RandM.RMLib
                         (sex.Message == "An existing connection was forcibly closed by the remote host"))
                     {
                         // Apparently we have a disconnect
+                        _Stream.Close();
                         _Socket.Close();
                     }
                     else
