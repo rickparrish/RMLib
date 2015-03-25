@@ -30,6 +30,7 @@ using System.Security.Cryptography;
 using System.Collections.Generic;
 using System.Collections;
 using System.IO;
+using System.Threading;
 
 namespace RandM.RMLib
 {
@@ -52,6 +53,8 @@ namespace RandM.RMLib
         {
             _Shake = shake;
             _Shook = !shake;
+
+            FlashPolicyFileRequest = false;
         }
 
         private int CalculateWebSocketKey(string text)
@@ -75,6 +78,10 @@ namespace RandM.RMLib
 
             return (int)(Convert.ToInt64(Digits) / Spaces);
         }
+
+        public bool FlashPolicyFileRequest { get; set; }
+
+        public StringDictionary Header { get { return _Header; } }
 
         protected override void NegotiateInbound(byte[] data, int numberOfBytes)
         {
@@ -424,7 +431,7 @@ namespace RandM.RMLib
                 while (true)
                 {
                     // Read another line, and abort if we don't get one within 5 seconds
-                    string InLine = ReadLn(false, 5000).Trim();
+                    string InLine = ReadLn(new string[] {"\r\n", "\0"}, false, '\0', 5000).Trim();
                     if (ReadTimedOut)
                     {
                         Debug.WriteLine("Timeout exceeded while waiting for complete handshake");
@@ -523,6 +530,19 @@ namespace RandM.RMLib
                         // Example: "Upgrade: websocket"
                         // NB: New in protocol 8+
                         _Header["Upgrade"] = InLine.Replace("Upgrade:", "").Trim();
+                    }
+                    else if (InLine.StartsWith("<policy-file-request"))
+                    {
+                        string PolicyResponse = 
+                            "<?xml version=\"1.0\"?>\n" +
+                            "<cross-domain-policy>\n" +
+                            "   <allow-access-from domain=\"*\" to-ports=\"*\"/>\n" +
+                            "   <site-control permitted-cross-domain-policies=\"all\"/>\n" +
+                            "</cross-domain-policy>\n" +
+                            "\0";
+                        WriteRaw(Encoding.UTF8.GetBytes(PolicyResponse));
+                        FlashPolicyFileRequest = true;
+                        return false;
                     }
                 }
             }

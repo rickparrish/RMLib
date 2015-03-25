@@ -687,7 +687,7 @@ namespace RandM.RMLib
             while (true)
             {
                 if (!Connected) return null;
-                
+
                 if (CanRead())
                 {
                     return (char)_InputBuffer.Dequeue();
@@ -703,31 +703,38 @@ namespace RandM.RMLib
 
         public string ReadLn(int timeOut)
         {
-            return ReadLn(LineEnding, true, '\0', timeOut);
+            return ReadLn(new string[] { LineEnding }, true, '\0', timeOut);
         }
 
         public string ReadLn(string terminator, int timeOut)
         {
-            return ReadLn(terminator, false, '\0', timeOut);
+            return ReadLn(new string[] { terminator }, false, '\0', timeOut);
         }
 
         public string ReadLn(bool echo, int timeOut)
         {
-            return ReadLn(LineEnding, echo, '\0', timeOut);
+            return ReadLn(new string[] { LineEnding }, echo, '\0', timeOut);
         }
 
         public string ReadLn(char passwordCharacter, int timeOut)
         {
-            return ReadLn(LineEnding, true, passwordCharacter, timeOut);
+            return ReadLn(new string[] { LineEnding }, true, passwordCharacter, timeOut);
         }
 
         public string ReadLn(string terminator, bool echo, char passwordCharacter, int timeOut)
         {
+            return ReadLn(new string[] { terminator }, echo, passwordCharacter, timeOut);
+        }
+
+        public string ReadLn(string[] terminators, bool echo, char passwordCharacter, int timeOut)
+        {
             DateTime StartTime = DateTime.Now;
             char? Ch = null;
+            bool NeedTerminator = true;
             string Result = "";
+            string TerminatorCharacters = string.Join("", terminators);
 
-            while (!Result.EndsWith(terminator))
+            while (NeedTerminator)
             {
                 if (!Connected) break;
 
@@ -758,7 +765,7 @@ namespace RandM.RMLib
                                 Write((passwordCharacter == '\0') ? Ch.ToString() : passwordCharacter.ToString());
                             }
                             // Also add it to the string (but no echo) if its part of a non-printable terminator
-                            else if (terminator.Contains(Ch.ToString()))
+                            else if (TerminatorCharacters.Contains(Ch.ToString()))
                             {
                                 Result += Ch;
                             }
@@ -774,9 +781,27 @@ namespace RandM.RMLib
                     // Return what we have so far
                     return Result;
                 }
+
+                foreach (string Terminator in terminators)
+                {
+                    if (Result.EndsWith(Terminator))
+                    {
+                        NeedTerminator = false;
+                        break;
+                    }
+                }
             }
 
-            if (Result.EndsWith(terminator)) Result = Result.Substring(0, Result.Length - terminator.Length);
+            // Find the terminator and remove it
+            foreach (string Terminator in terminators)
+            {
+                if (Result.EndsWith(Terminator))
+                {
+                    Result = Result.Substring(0, Result.Length - Terminator.Length);
+                    break;
+                }
+            }
+
             if (echo) { WriteLn(); }
             return Result;
         }
