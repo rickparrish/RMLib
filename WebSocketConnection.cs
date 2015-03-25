@@ -31,6 +31,9 @@ using System.Collections.Generic;
 using System.Collections;
 using System.IO;
 using System.Threading;
+using System.Net.Security;
+using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
 
 namespace RandM.RMLib
 {
@@ -78,6 +81,8 @@ namespace RandM.RMLib
 
             return (int)(Convert.ToInt64(Digits) / Spaces);
         }
+
+        public X509Certificate2 Certificate { get; set; }
 
         public bool FlashPolicyFileRequest { get; set; }
 
@@ -427,11 +432,38 @@ namespace RandM.RMLib
 
             try
             {
+                // Peek first byte for 22, 128 (indicates ssl)
+                // Don't use class methods for peek/read since they eat data into the input buffer, and AuthenticateAsServer needs that data
+                if (_Socket.Poll(5 * 1000 * 1000, SelectMode.SelectRead))
+                {
+                    // TODO Do a peek of more than the first byte to also check for flash policy requests, and handle as a call-back
+                    byte[] FirstByte = new byte[1];
+                    _Socket.Receive(FirstByte, 0, 1, SocketFlags.Peek);
+                    if ((FirstByte[0] == 22) || (FirstByte[0] == 128))
+                    {
+                        if (Certificate == null)
+                        {
+                            throw new Exception("WSS requires a certificate");
+                        }
+                        else
+                        {
+                            var SSL = new SslStream(_Stream, false);
+                            _Stream = SSL;
+                            SSL.AuthenticateAsServer(Certificate, false, SslProtocols.Tls, false);
+                        }
+                    }
+                }
+                else
+                {
+                    Debug.WriteLine("Timeout exceeded while waiting for complete handshake");
+                    return false;
+                }
+
                 // Keep reading header data until we get all the data we want
                 while (true)
                 {
                     // Read another line, and abort if we don't get one within 5 seconds
-                    string InLine = ReadLn(new string[] {"\r\n", "\0"}, false, '\0', 5000).Trim();
+                    string InLine = ReadLn(new string[] { "\r\n", "\0" }, false, '\0', 5000).Trim();
                     if (ReadTimedOut)
                     {
                         Debug.WriteLine("Timeout exceeded while waiting for complete handshake");
