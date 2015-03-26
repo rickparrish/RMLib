@@ -44,25 +44,88 @@ namespace RandM.RMLib
         public static event EventHandler<RMLogEventArgs> Handler = null;
 
         /// <summary>
-        /// Basically the same as Error, but also accepts an exception object whose stack trace will be returned if in trace or debug modes
+        /// Raises an Debug-level event
+        /// </summary>
+        /// <param name="message">The message to raise</param>
+        public static void Debug(string message)
+        {
+            if (Level <= LogLevel.Debug)
+            {
+                new RMLogEventArgs(LogLevel.Debug, message).Raise(null, Handler);
+            }
+        }
+        
+        /// <summary>
+        /// Raises an Error-level event
+        /// </summary>
+        /// <param name="message">The message to raise</param>
+        public static void Error(string message)
+        {
+            if (Level <= LogLevel.Error)
+            {
+                new RMLogEventArgs(LogLevel.Error, message).Raise(null, Handler);
+            }
+        }
+
+        /// <summary>
+        /// Raises an Error-level event, including information about what caused the exception
         /// </summary>
         /// <param name="ex">The exception that occurred</param>
         /// <param name="message">A message describing what happened</param>
         public static void Exception(Exception ex, string message)
         {
-            var Trace = new StackTrace(ex, true);
-            var Frame = Trace.GetFrame(0);
-            var Method = Frame.GetMethod();
-            message = string.Format("Message: {0}\r\nFile: {1}:{2},{3}\r\nMethod: {4}::{5}\r\nException: {6}",
-                message,
-                Frame.GetFileName(),
-                Frame.GetFileLineNumber(),
-                Frame.GetFileColumnNumber(),
-                Method.DeclaringType,
-                Method.Name,
-                (Level <= LogLevel.Debug) ? ex.ToString() : ex.Message);
-            
-            new RMLogEventArgs(LogLevel.Error, message).Raise(null, Handler);
+            if (Level <= LogLevel.Error)
+            {
+                var Trace = new StackTrace(ex, true);
+                var Frame = Trace.GetFrame(0);
+                var Method = Frame.GetMethod();
+                message = string.Format("Message: {0}\r\nFile: {1}:{2},{3}\r\nMethod: {4}::{5}\r\nException: {6}",
+                    message,
+                    Frame.GetFileName(),
+                    Frame.GetFileLineNumber(),
+                    Frame.GetFileColumnNumber(),
+                    Method.DeclaringType,
+                    Method.Name,
+                    (Level <= LogLevel.Debug) ? ex.ToString() : ex.Message);
+
+                new RMLogEventArgs(LogLevel.Error, message).Raise(null, Handler);
+            }
+        }
+
+        /// <summary>
+        /// Raises an Info-level event
+        /// </summary>
+        /// <param name="message">The message to raise</param>
+        public static void Info(string message)
+        {
+            if (Level <= LogLevel.Info)
+            {
+                new RMLogEventArgs(LogLevel.Info, message).Raise(null, Handler);
+            }
+        }
+
+        /// <summary>
+        /// Raises an Trace-level event
+        /// </summary>
+        /// <param name="message">The message to raise</param>
+        public static void Trace(string message)
+        {
+            if (Level <= LogLevel.Trace)
+            {
+                new RMLogEventArgs(LogLevel.Trace, message).Raise(null, Handler);
+            }
+        }
+
+        /// <summary>
+        /// Raises an Warning-level event
+        /// </summary>
+        /// <param name="message">The message to raise</param>
+        public static void Warning(string message)
+        {
+            if (Level <= LogLevel.Warning)
+            {
+                new RMLogEventArgs(LogLevel.Warning, message).Raise(null, Handler);
+            }
         }
     }
 }
