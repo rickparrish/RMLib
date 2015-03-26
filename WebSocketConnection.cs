@@ -37,6 +37,9 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace RandM.RMLib
 {
+    /// <summary>
+    /// Not a very complete implementation, but good enough for the girls I date
+    /// </summary>
     public class WebSocketConnection : TcpConnection
     {
         public enum ProtocolVersion
@@ -442,14 +445,13 @@ namespace RandM.RMLib
                 // Don't use class methods for peek/read since they eat data into the input buffer, and AuthenticateAsServer needs that data
                 if (_Socket.Poll(5 * 1000 * 1000, SelectMode.SelectRead))
                 {
-                    // TODO Do a peek of more than the first byte to also check for flash policy requests, and handle as a call-back
                     byte[] FirstByte = new byte[1];
                     _Socket.Receive(FirstByte, 0, 1, SocketFlags.Peek);
                     if ((FirstByte[0] == 22) || (FirstByte[0] == 128))
                     {
                         if (_Certificate == null)
                         {
-                            throw new Exception("WSS requires a certificate");
+                            throw new Exception("wss:// requires a certificate");
                         }
                         else
                         {
@@ -461,7 +463,7 @@ namespace RandM.RMLib
                 }
                 else
                 {
-                    Debug.WriteLine("Timeout exceeded while waiting for complete handshake");
+                    RMLog.Error("Timeout exceeded while waiting for complete handshake");
                     return false;
                 }
 
@@ -472,11 +474,11 @@ namespace RandM.RMLib
                     string InLine = ReadLn(new string[] { "\r\n", "\0" }, false, '\0', 5000).Trim();
                     if (ReadTimedOut)
                     {
-                        Debug.WriteLine("Timeout exceeded while waiting for complete handshake");
+                        RMLog.Error("Timeout exceeded while waiting for complete handshake");
                         return false;
                     }
 
-                    Debug.WriteLine("Handshake Line: " + InLine);
+                    RMLog.Debug("Handshake Line: " + InLine);
 
                     // Check for blank line (indicates we have most of the header, and only the last 8 bytes remain
                     if (string.IsNullOrEmpty(InLine))
@@ -639,8 +641,8 @@ namespace RandM.RMLib
             else
             {
                 // We're missing some pice of data, log what we do have
-                Debug.WriteLine("Missing some piece of handshake data.  Here's what we have:");
-                foreach (DictionaryEntry DE in _Header) Debug.WriteLine(DE.Key + " => " + DE.Value);
+                RMLog.Error("Missing some piece of handshake data.  Here's what we have:");
+                foreach (DictionaryEntry DE in _Header) RMLog.Error(DE.Key + " => " + DE.Value);
                 return false;
             }
         }
@@ -677,8 +679,8 @@ namespace RandM.RMLib
             else
             {
                 // We're missing some pice of data, log what we do have
-                Debug.WriteLine("Missing some piece of handshake data.  Here's what we have:");
-                foreach (DictionaryEntry DE in _Header) Debug.WriteLine(DE.Key + " => " + DE.Value);
+                RMLog.Error("Missing some piece of handshake data.  Here's what we have:");
+                foreach (DictionaryEntry DE in _Header) RMLog.Error(DE.Key + " => " + DE.Value);
                 return false;
             }
         }

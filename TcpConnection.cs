@@ -20,13 +20,11 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading;
-using System.Globalization;
-using System.IO;
 
 // If linux needs to be pinvoked, here's a sample:
 //[DllImport("libc")]
@@ -115,12 +113,12 @@ namespace RandM.RMLib
             }
             catch (SocketException sex)
             {
-                Debug.WriteLine("SocketException in TCPSocket::Accept(): " + sex.ErrorCode.ToString() + ": " + sex.ToString());
+                RMLog.Exception(sex, "SocketException in TcpConnection::Accept().  ErrorCode=" + sex.ErrorCode.ToString());
                 return null;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("Exception in TCPSocket::Accept(): " + ex.ToString());
+                RMLog.Exception(ex, "Exception in TcpConnection::Accept()");
                 return null;
             }
         }
@@ -136,12 +134,12 @@ namespace RandM.RMLib
             }
             catch (SocketException sex)
             {
-                Debug.WriteLine("SocketException in TCPSocket::AcceptTCP(): " + sex.ErrorCode.ToString() + ": " + sex.ToString());
+                RMLog.Exception(sex, "SocketException in TcpConnection::AcceptTCP().  ErrorCode=" + sex.ErrorCode.ToString());
                 return null;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("Exception in TCPSocket::AcceptTCP(): " + ex.ToString());
+                RMLog.Exception(ex, "Exception in TcpConnection::AcceptTCP()");
                 return null;
             }
         }
@@ -176,12 +174,12 @@ namespace RandM.RMLib
             }
             catch (SocketException sex)
             {
-                Debug.WriteLine("SocketException in TCPSocket::CanAccept(): " + sex.ErrorCode.ToString() + ": " + sex.ToString());
+                RMLog.Exception(sex, "SocketException in TcpConnection::CanAccept().  ErrorCode=" + sex.ErrorCode.ToString());
                 return false;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("Exception in TCPSocket::CanAccept(): " + ex.ToString());
+                RMLog.Exception(ex, "Exception in TcpConnection::CanAccept()");
                 return false;
             }
         }
@@ -208,11 +206,11 @@ namespace RandM.RMLib
                 }
                 catch (SocketException sex)
                 {
-                    Debug.WriteLine("SocketException in TCPSocket::Close(): " + sex.ErrorCode.ToString() + ": " + sex.ToString());
+                    RMLog.Exception(sex, "SocketException in TcpConnection::Close().  ErrorCode=" + sex.ErrorCode.ToString());
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine("Exception in TCPSocket::Close(): " + ex.ToString());
+                    RMLog.Exception(ex, "Exception in TcpConnection::Close()");
                 }
                 if (Connected)
                 {
@@ -245,12 +243,12 @@ namespace RandM.RMLib
             }
             catch (SocketException sex)
             {
-                Debug.WriteLine("SocketException in TCPSocket::Connect(\"" + hostName + "\", " + port.ToString() + "): " + sex.ErrorCode.ToString() + ": " + sex.ToString());
+                RMLog.Exception(sex, "SocketException in TcpConnection::Connect().  ErrorCode=" + sex.ErrorCode.ToString());
                 return false;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("Exception in TCPSocket::Connect(\"" + hostName + "\", " + port.ToString() + "): " + ex.ToString());
+                RMLog.Exception(ex, "Exception in TcpConnection::Connect()");
                 return false;
             }
         }
@@ -269,12 +267,12 @@ namespace RandM.RMLib
             }
             catch (SocketException sex)
             {
-                Debug.WriteLine("SocketException in TCPSocket::GetAddrByName(\"" + hostName + "\"): " + sex.ErrorCode.ToString() + ": " + sex.ToString());
+                RMLog.Exception(sex, "SocketException in TcpConnection::GetAddrByName().  ErrorCode=" + sex.ErrorCode.ToString());
                 return IPAddress.None;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("Exception in TCPSocket::GetAddrByName(\"" + hostName + "\"): " + ex.ToString());
+                RMLog.Exception(ex, "Exception in TcpConnection::GetAddrByName()");
                 return IPAddress.None;
             }
         }
@@ -287,12 +285,12 @@ namespace RandM.RMLib
             }
             catch (SocketException sex)
             {
-                Debug.WriteLine("SocketException in TCPSocket::GetHostByIP(\"" + ipAddress + "\"): " + sex.ErrorCode.ToString() + ": " + sex.ToString());
+                RMLog.Exception(sex, "SocketException in TcpConnection::GetHostByIP().  ErrorCode=" + sex.ErrorCode.ToString());
                 return "";
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("Exception in TCPSocket::GetHostByIP(\"" + ipAddress + "\"): " + ex.ToString());
+                RMLog.Exception(ex, "Exception in TcpConnection::GetHostByIP()");
                 return "";
             }
         }
@@ -305,12 +303,12 @@ namespace RandM.RMLib
             }
             catch (SocketException sex)
             {
-                Debug.WriteLine("SocketException in TCPSocket::GetIPByName(\"" + hostName + "\"): " + sex.ErrorCode.ToString() + ": " + sex.ToString());
+                RMLog.Exception(sex, "SocketException in TcpConnection::GetIPByName().  ErrorCode=" + sex.ErrorCode.ToString());
                 return "";
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("Exception in TCPSocket::GetIPByName(\"" + hostName + "\"): " + ex.ToString());
+                RMLog.Exception(ex, "Exception in TcpConnection::GetIPByName()");
                 return "";
             }
         }
@@ -342,12 +340,12 @@ namespace RandM.RMLib
             }
             catch (SocketException sex)
             {
-                Debug.WriteLine("SocketException in TCPSocket::GetLocalIPs(): " + sex.ErrorCode.ToString() + ": " + sex.ToString());
+                RMLog.Exception(sex, "SocketException in TcpConnection::GetLocalIPs().  ErrorCode=" + sex.ErrorCode.ToString());
                 return "";
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("Exception in TCPSocket::GetLocalIPs(): " + ex.ToString());
+                RMLog.Exception(ex, "Exception in TcpConnection::GetLocalIPs()");
                 return "";
             }
         }
@@ -446,12 +444,12 @@ namespace RandM.RMLib
             }
             catch (SocketException sex)
             {
-                Debug.WriteLine("SocketException in TCPSocket::Listen(\"" + ipAddress + "\", " + port.ToString() + "): " + sex.ErrorCode.ToString() + ": " + sex.ToString());
+                RMLog.Exception(sex, "SocketException in TcpConnection::Listen().  ErrorCode=" + sex.ErrorCode.ToString());
                 return false;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("Exception in TCPSocket::Listen(\"" + ipAddress + "\", " + port.ToString() + "): " + ex.ToString());
+                RMLog.Exception(ex, "Exception in TcpConnection::Listen()");
                 return false;
             }
         }
@@ -514,12 +512,12 @@ namespace RandM.RMLib
                 }
                 catch (SocketException sex)
                 {
-                    Debug.WriteLine("SocketException in TCPSocket::Open(" + ASocketHandle.ToString() + "): " + sex.ErrorCode.ToString() + ": " + sex.ToString());
+                    RMLog.Exception(sex, "SocketException in TcpConnection::Open().  ErrorCode=" + sex.ErrorCode.ToString());
                     return false;
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine("Exception in TCPSocket::Open(" + ASocketHandle.ToString() + "): " + ex.ToString());
+                    RMLog.Exception(ex, "Exception in TcpConnection::Open()");
                     return false;
                 }
             }
@@ -528,6 +526,7 @@ namespace RandM.RMLib
                 Crt.ClrScr(); // TODO
                 try
                 {
+                    // TODO Can we pinvoke something in mono?
                     /* Old method
                     SocketInformation SI = new SocketInformation();
                     SI.Options = SocketInformationOptions.Connected;
@@ -587,12 +586,12 @@ namespace RandM.RMLib
                 }
                 catch (SocketException sex)
                 {
-                    Debug.WriteLine("SocketException in TCPSocket::Open(" + ASocketHandle.ToString() + "): " + sex.ErrorCode.ToString() + ": " + sex.ToString());
+                    RMLog.Exception(sex, "SocketException in TcpConnection::Open().  ErrorCode=" + sex.ErrorCode.ToString());
                     return false;
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine("Exception in TCPSocket::Open(" + ASocketHandle.ToString() + "): " + ex.ToString());
+                    RMLog.Exception(ex, "Exception in TcpConnection::Open()");
                     return false;
                 }
             }
@@ -614,12 +613,12 @@ namespace RandM.RMLib
             }
             catch (SocketException sex)
             {
-                Debug.WriteLine("SocketException in TCPSocket::Open(" + socketInformationBytes.ToString() + "): " + sex.ErrorCode.ToString() + ": " + sex.ToString());
+                RMLog.Exception(sex, "SocketException in TcpConnection::Open().  ErrorCode=" + sex.ErrorCode.ToString());
                 return false;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("Exception in TCPSocket::Open(" + socketInformationBytes.ToString() + "): " + ex.ToString());
+                RMLog.Exception(ex, "Exception in TcpConnection::Open()");
                 return false;
             }
         }
@@ -644,12 +643,12 @@ namespace RandM.RMLib
             }
             catch (SocketException sex)
             {
-                Debug.WriteLine("SocketException in TCPSocket::Open(" + socket.ToString() + "): " + sex.ErrorCode.ToString() + ": " + sex.ToString());
+                RMLog.Exception(sex, "SocketException in TcpConnection::Open().  ErrorCode=" + sex.ErrorCode.ToString());
                 return false;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("Exception in TCPSocket::Open(" + socket.ToString() + "): " + ex.ToString());
+                RMLog.Exception(ex, "Exception in TcpConnection::Open()");
                 return false;
             }
         }
@@ -855,11 +854,11 @@ namespace RandM.RMLib
             }
             catch (SocketException sex)
             {
-                Debug.WriteLine("SocketException in TCPSocket::ReceiveData(): " + sex.ErrorCode.ToString() + ": " + sex.ToString());
+                RMLog.Exception(sex, "SocketException in TcpConnection::ReceiveData().  ErrorCode=" + sex.ErrorCode.ToString());
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("Exception in TCPSocket::ReceiveData(): " + ex.ToString());
+                RMLog.Exception(ex, "Exception in TcpConnection::ReceiveData()");
             }
         }
 
