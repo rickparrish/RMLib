@@ -580,7 +580,7 @@ namespace RandM.RMLib
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("ShakeHands() error: " + ex.ToString());
+                RMLog.Exception(ex, "Exception in WebSocketConnection::ShakeHands()");
             }
 
             return false;

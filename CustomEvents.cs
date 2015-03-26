@@ -90,6 +90,24 @@ namespace RandM.RMLib
         }
     }
 
+    public class RMLogEventArgs : EventArgs
+    {
+        public LogLevel Level { get; set; }
+        public string Message { get; set; }
+
+        public RMLogEventArgs(LogLevel level, string message)
+        {
+            this.Level = level;
+            this.Message = message;
+        }
+
+        public void Raise(object sender, EventHandler<RMLogEventArgs> Handler)
+        {
+            EventHandler<RMLogEventArgs> LocalHandler = Handler;
+            if (LocalHandler != null) LocalHandler(sender, this);
+        }
+    }
+
     public class RMProcessStartAndWaitEventArgs : EventArgs
     {
         public bool Stop { get; set; }
