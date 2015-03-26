@@ -24,12 +24,20 @@ namespace RandM.RMLib
 {
     public abstract class RMThread
     {
+        public event EventHandler FinishEvent = null;
+
         protected volatile bool _Paused = false;
         protected volatile bool _Stop = false;
         protected AutoResetEvent _StopEvent = new AutoResetEvent(false);
         private Thread _Thread = null;
 
         public bool Aborted { get { return _Stop; } }
+
+        private void CallExecuteAndRaiseFinish()
+        {
+            Execute();
+            RaiseFinishEvent();
+        }
 
         protected abstract void Execute();
 
@@ -50,13 +58,19 @@ namespace RandM.RMLib
             _Paused = !_Paused;
         }
 
+        public virtual void RaiseFinishEvent()
+        {
+            EventHandler LocalHandler = FinishEvent;
+            if (LocalHandler != null) LocalHandler(this, EventArgs.Empty);
+        }
+
         public virtual void Start()
         {
             // Reset the paused state
             _Paused = false;
 
             // Create Thread object
-            _Thread = new Thread(Execute);
+            _Thread = new Thread(CallExecuteAndRaiseFinish);
 
             // And start the thread
             _Thread.Start();
