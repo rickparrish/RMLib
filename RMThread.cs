@@ -35,7 +35,14 @@ namespace RandM.RMLib
 
         public virtual bool Join(int milliseconds)
         {
-            return _Thread.Join(milliseconds);
+            if (_Thread.IsAlive)
+            {
+                return _Thread.Join(milliseconds);
+            }
+            else
+            {
+                return true;
+            }
         }
         
         public virtual void Pause()
@@ -50,7 +57,6 @@ namespace RandM.RMLib
 
             // Create Thread object
             _Thread = new Thread(Execute);
-            _Thread.IsBackground = true;
 
             // And start the thread
             _Thread.Start();
@@ -64,7 +70,7 @@ namespace RandM.RMLib
 
         public virtual void WaitFor()
         {
-            _Thread.Join();
+            if (_Thread.IsAlive) _Thread.Join();
         }
     }
 }
