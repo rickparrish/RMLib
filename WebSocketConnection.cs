@@ -39,12 +39,21 @@ namespace RandM.RMLib
 {
     public class WebSocketConnection : TcpConnection
     {
+        public enum ProtocolVersion
+        {
+            None,
+            Hixie75,
+            Hixie76,
+            RFC6455
+        }
+
         private X509Certificate2 _Certificate = null;
         private byte[] _FrameMask = null;
         private int _FrameOpCode = 0;
         private long _FramePayloadLength = 0;
         private int _FramePayloadReceived = 0;
         private StringDictionary _Header = new StringDictionary();
+        private ProtocolVersion _ProtocolVersion = ProtocolVersion.None;
         private byte[] _QueuedBytes = null;
         private bool _Shake = true;
         private bool _Shook = false;
@@ -93,15 +102,13 @@ namespace RandM.RMLib
         {
             if (_Shook)
             {
-                switch (_Header["Version"])
+                switch (_ProtocolVersion)
                 {
-                    case "0":
-                        NegotiateInboundDraft0(data, numberOfBytes);
+                    case ProtocolVersion.Hixie76:
+                        NegotiateInboundHixie76(data, numberOfBytes);
                         break;
-                    case "7":
-                    case "8":
-                    case "13":
-                        NegotiateInboundVersion7(data, numberOfBytes);
+                    case ProtocolVersion.RFC6455:
+                        NegotiateInboundRFC6455(data, numberOfBytes);
                         break;
                 }
             }
@@ -114,7 +121,7 @@ namespace RandM.RMLib
             }
         }
 
-        protected void NegotiateInboundDraft0(byte[] data, int numberOfBytes)
+        protected void NegotiateInboundHixie76(byte[] data, int numberOfBytes)
         {
             if (_QueuedBytes != null)
             {
@@ -185,7 +192,7 @@ namespace RandM.RMLib
             }
         }
 
-        protected void NegotiateInboundVersion7(byte[] data, int numberOfBytes)
+        protected void NegotiateInboundRFC6455(byte[] data, int numberOfBytes)
         {
             if (_QueuedBytes != null)
             {
@@ -316,15 +323,13 @@ namespace RandM.RMLib
         {
             if (_Shook)
             {
-                switch (_Header["Version"])
+                switch (_ProtocolVersion)
                 {
-                    case "0":
-                        NegotiateOutboundDraft0(data, numberOfBytes);
+                    case ProtocolVersion.Hixie76:
+                        NegotiateOutboundHixie76(data, numberOfBytes);
                         break;
-                    case "7":
-                    case "8":
-                    case "13":
-                        NegotiateOutboundVersion7(data, numberOfBytes);
+                    case ProtocolVersion.RFC6455:
+                        NegotiateOutboundRFC6455(data, numberOfBytes);
                         break;
                 }
             }
@@ -337,7 +342,7 @@ namespace RandM.RMLib
             }
         }
 
-        protected void NegotiateOutboundDraft0(byte[] data, int numberOfBytes)
+        protected void NegotiateOutboundHixie76(byte[] data, int numberOfBytes)
         {
             _OutputBuffer.Enqueue(0);
             for (int i = 0; i < numberOfBytes; i++)
@@ -358,7 +363,7 @@ namespace RandM.RMLib
             _OutputBuffer.Enqueue(255);
         }
 
-        protected void NegotiateOutboundVersion7(byte[] data, int numberOfBytes)
+        protected void NegotiateOutboundRFC6455(byte[] data, int numberOfBytes)
         {
             List<byte> ToSend = new List<byte>();
 
@@ -402,7 +407,7 @@ namespace RandM.RMLib
                 _OutputBuffer.Enqueue(Bytes[1]);
                 _OutputBuffer.Enqueue(Bytes[0]);
             }
-            
+
             for (var i = 0; i < ToSend.Count; i++)
             {
                 _OutputBuffer.Enqueue(ToSend[i]);
@@ -479,11 +484,22 @@ namespace RandM.RMLib
                         switch (_Header["Version"])
                         {
                             case "0":
-                                return ShakeHandsDraft0();
+                                if (_Header.ContainsKey("Sec-WebSocket-Key1"))
+                                {
+                                    _ProtocolVersion = ProtocolVersion.Hixie76;
+                                    return ShakeHandsHixie76();
+                                }
+                                else
+                                {
+                                    // Only used by Chrome 4 and iOS 5.0.0 so probably not worth bothering
+                                    _ProtocolVersion = ProtocolVersion.Hixie75;
+                                    return false;
+                                }
                             case "7":
                             case "8":
                             case "13":
-                                return ShakeHandsVersion7();
+                                _ProtocolVersion = ProtocolVersion.RFC6455;
+                                return ShakeHandsRFC6455();
                             default:
                                 //		    TODO If this version does not
                                 //          match a version understood by the server, the server MUST
@@ -492,7 +508,7 @@ namespace RandM.RMLib
                                 //          Upgrade Required), and a |Sec-WebSocket-Version| header
                                 //          indicating the version(s) the server is capable of
                                 //          understanding.
-                                break;
+                                return false;
                         }
                         break;
                     }
@@ -566,7 +582,7 @@ namespace RandM.RMLib
                     }
                     else if (InLine.StartsWith("<policy-file-request"))
                     {
-                        string PolicyResponse = 
+                        string PolicyResponse =
                             "<?xml version=\"1.0\"?>\n" +
                             "<cross-domain-policy>\n" +
                             "   <allow-access-from domain=\"*\" to-ports=\"*\"/>\n" +
@@ -587,7 +603,7 @@ namespace RandM.RMLib
             return false;
         }
 
-        private bool ShakeHandsDraft0()
+        private bool ShakeHandsHixie76()
         {
             // Ensure we have all the data we need
             if ((_Header.ContainsKey("Key1")) && (_Header.ContainsKey("Key2")) && (_Header.ContainsKey("Host")) && (_Header.ContainsKey("Origin")) && (_Header.ContainsKey("Path")))
@@ -629,7 +645,7 @@ namespace RandM.RMLib
             }
         }
 
-        private bool ShakeHandsVersion7()
+        private bool ShakeHandsRFC6455()
         {
             // Ensure we have all the data we need
             if ((_Header.ContainsKey("Key")) && (_Header.ContainsKey("Host")) && (_Header.ContainsKey("Origin")) && (_Header.ContainsKey("Path")))
@@ -652,7 +668,7 @@ namespace RandM.RMLib
                                "Sec-WebSocket-Accept: " + Encoded + "\r\n";
                 if (_Header.ContainsKey("SubProtocol")) Response += "Sec-WebSocket-Protocol: plain\r\n"; // Only sub-protocol we support
                 Response += "\r\n";
-                
+
                 // Send the response and return
                 WriteBytes(Encoding.ASCII.GetBytes(Response));
 
