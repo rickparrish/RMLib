@@ -39,6 +39,7 @@ namespace RandM.RMLib
 {
     public class WebSocketConnection : TcpConnection
     {
+        private X509Certificate2 _Certificate = null;
         private byte[] _FrameMask = null;
         private int _FrameOpCode = 0;
         private long _FramePayloadLength = 0;
@@ -51,11 +52,13 @@ namespace RandM.RMLib
 
         public WebSocketConnection() : this(true) { }
 
-        public WebSocketConnection(bool shake)
-            : base()
+        public WebSocketConnection(bool shake) : this(shake, null) { }
+
+        public WebSocketConnection(bool shake, X509Certificate2 certificate)
         {
             _Shake = shake;
             _Shook = !shake;
+            _Certificate = certificate;
 
             FlashPolicyFileRequest = false;
         }
@@ -81,8 +84,6 @@ namespace RandM.RMLib
 
             return (int)(Convert.ToInt64(Digits) / Spaces);
         }
-
-        public X509Certificate2 Certificate { get; set; }
 
         public bool FlashPolicyFileRequest { get; set; }
 
@@ -441,7 +442,7 @@ namespace RandM.RMLib
                     _Socket.Receive(FirstByte, 0, 1, SocketFlags.Peek);
                     if ((FirstByte[0] == 22) || (FirstByte[0] == 128))
                     {
-                        if (Certificate == null)
+                        if (_Certificate == null)
                         {
                             throw new Exception("WSS requires a certificate");
                         }
@@ -449,7 +450,7 @@ namespace RandM.RMLib
                         {
                             var SSL = new SslStream(_Stream, false);
                             _Stream = SSL;
-                            SSL.AuthenticateAsServer(Certificate, false, SslProtocols.Tls, false);
+                            SSL.AuthenticateAsServer(_Certificate, false, SslProtocols.Tls, false);
                         }
                     }
                 }
