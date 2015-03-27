@@ -73,6 +73,8 @@ namespace RandM.RMLib
             _Certificate = certificate;
 
             FlashPolicyFileRequest = false;
+            Protocol = "ws";
+            SubProtocol = "plain";
         }
 
         private int CalculateWebSocketKey(string text)
@@ -435,6 +437,8 @@ namespace RandM.RMLib
             return false;
         }
 
+        public string Protocol { get; set; }
+
         private bool ShakeHands()
         {
             _Header["Version"] = "0";
@@ -458,6 +462,7 @@ namespace RandM.RMLib
                             var SSL = new SslStream(_Stream, false);
                             _Stream = SSL;
                             SSL.AuthenticateAsServer(_Certificate, false, SslProtocols.Tls, false);
+                            Protocol = "wss";
                         }
                     }
                 }
@@ -684,6 +689,8 @@ namespace RandM.RMLib
                 return false;
             }
         }
+
+        public string SubProtocol { get; set; }
     }
 
     /// <summary>
