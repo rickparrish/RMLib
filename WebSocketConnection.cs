@@ -483,7 +483,7 @@ namespace RandM.RMLib
                         return false;
                     }
 
-                    RMLog.Debug("Handshake Line: " + InLine);
+                    RMLog.Trace("Handshake Line: " + InLine);
 
                     // Check for blank line (indicates we have most of the header, and only the last 8 bytes remain
                     if (string.IsNullOrEmpty(InLine))
