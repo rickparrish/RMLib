@@ -57,11 +57,19 @@ namespace RandM.RMLib
         {
             if (HttpContext.Current == null)
             {
-                Init(StringUtils.PathCombine(ProcessUtils.StartupPath, fileName), transaction);
+                if (!Path.IsPathRooted(fileName))
+                {
+                    fileName = StringUtils.PathCombine(ProcessUtils.StartupPath, fileName);
+                }
+                Init(fileName, transaction);
             }
             else
             {
-                Init(StringUtils.PathCombine(HttpContext.Current.Server.MapPath(".\\App_Data"), fileName), transaction);
+                if (!Path.IsPathRooted(fileName))
+                {
+                    fileName = StringUtils.PathCombine(HttpContext.Current.Server.MapPath(".\\App_Data"), fileName);
+                }
+                Init(fileName, transaction);
             }
         }
 
