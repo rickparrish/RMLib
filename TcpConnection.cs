@@ -463,7 +463,7 @@ namespace RandM.RMLib
         {
             for (int i = 0; i < numberOfBytes; i++)
             {
-                _InputBuffer.Enqueue(data[i]);
+                AddToInputQueue(data[i]);
             }
         }
 
