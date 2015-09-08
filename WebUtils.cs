@@ -165,7 +165,7 @@ namespace RandM.RMLib
             using (RMWebClient WC = new RMWebClient())
             {
                 WC.Timeout = 5000;
-                string IP = WC.DownloadString("http://www.randm.ca:" + port.ToString() + "/whats-my-ip.php");
+                string IP = WC.DownloadString("http://myip.randm.ca:" + port.ToString() + "/whats-my-ip.php");
 
                 // Return if it's valid
                 IPAddress Result = IPAddress.None;
