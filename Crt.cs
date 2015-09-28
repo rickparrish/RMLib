@@ -210,7 +210,7 @@ namespace RandM.RMLib
         /// This allows faster output (and input) than would normally be possible using
         /// standard output (or input).
         /// </remarks>
-        /// <param name="F">The text file to associate with the CRT window</param>
+        /// <param name="f">The text file to associate with the CRT window</param>
         static public void AssignCrt(object f)
         {
             lock (_Lock)

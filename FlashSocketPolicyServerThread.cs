@@ -22,7 +22,7 @@ using System;
 
 namespace RandM.RMLib
 {
-    public class FlashSocketPolicyServerThread : RMThread, IDisposable
+    public class FlashSocketPolicyServerThread : RMThread
     {
         private string _Address;
         private string _AllowedPorts;
@@ -44,23 +44,7 @@ namespace RandM.RMLib
             _AllowedPorts = allowedPorts;
         }
 
-        ~FlashSocketPolicyServerThread()
-        {
-            Dispose(false);
-        }
-
-        public void Dispose()
-        {
-            Dispose(true);
-            // This object will be cleaned up by the Dispose method.
-            // Therefore, you should call GC.SupressFinalize to
-            // take this object off the finalization queue
-            // and prevent finalization code for this object
-            // from executing a second time.
-            GC.SuppressFinalize(this);
-        }
-
-        private void Dispose(bool ADisposing)
+        protected override void Dispose(bool ADisposing)
         {
             // Check to see if Dispose has already been called.
             if (!_Disposed)
@@ -81,6 +65,8 @@ namespace RandM.RMLib
                 // Note disposing has been done.
                 _Disposed = true;
             }
+
+            base.Dispose(ADisposing);
         }
 
         protected override void Execute()

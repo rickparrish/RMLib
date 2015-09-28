@@ -240,6 +240,7 @@ namespace RandM.RMLib
         /// </summary>
         /// <param name="path">The path to search.</param>
         /// <param name="searchPattern">The search string to match against files in the path.</param>
+        /// <param name="searchOption">The options for the search</param>
         /// <returns>An object that implements <see cref="IEnumerable{FileData}"/> and 
         /// allows you to enumerate the files in the given directory.</returns>
         /// <exception cref="ArgumentNullException">

@@ -110,7 +110,7 @@ namespace RandM.RMLib
         /// ss.AppendChar('x');
         /// RMSecureString rmss = ss;
         /// </summary>
-        /// <param name="secureString">RMSecureString to initialize the RMSecureString to hold</param>
+        /// <param name="rhs">RMSecureString to initialize the RMSecureString to hold</param>
         /// <returns>new RMSecureString</returns>
         public static implicit operator RMSecureString(SecureString rhs)
         {

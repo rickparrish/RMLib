@@ -72,6 +72,8 @@ namespace RandM.RMLib
                 if (disposing)
                 {
                     // Dispose managed resources.
+                    if (_ReadEvent != null) _ReadEvent.Close();
+                    if (_WriteEvent != null) _WriteEvent.Close();
                 }
 
                 // Call the appropriate methods to clean up

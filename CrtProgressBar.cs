@@ -34,13 +34,11 @@ namespace RandM.RMLib
         /// <summary>
         /// Initializes a progress bar with the given name and details, and draws the 0% progress to the screen
         /// </summary>
-        /// <param name="AX">The x coordinate of the bar</param>
-        /// <param name="AY">The y coordinate of the bar</param>
+        /// <param name="AParent">The parent element</param>
+        /// <param name="ALeft">The x coordinate of the bar</param>
+        /// <param name="ATop">The y coordinate of the bar</param>
         /// <param name="AWidth">The width of the bar</param>
         /// <param name="AStyle">The style of the bar</param>
-        /// <param name="AFG">The foreground colour of the completed bar</param>
-        /// <param name="ABG">The background colour of the bar</param>
-        /// <param name="AShaded">The foreground colour of the uncompleted bar</param>
         public CrtProgressBar(CrtControl AParent, int ALeft, int ATop, int AWidth, ProgressBarStyle AStyle)
             : base(AParent, ALeft, ATop, AWidth, 1)
         {

@@ -34,6 +34,9 @@ namespace RandM.RMLib
 {
     public class TcpConnection : IDisposable
     {
+        // Events
+        public event EventHandler<StringEventArgs> ReadEvent = null;
+
         // Read buffer size
         protected const int READ_BUFFER_SIZE = 64 * 1024;   // 64k input buffer
 
@@ -146,6 +149,19 @@ namespace RandM.RMLib
 
         protected void AddToInputQueue(byte data)
         {
+            var ReadHandler = ReadEvent;
+            if (ReadHandler != null)
+            {
+                if ((data >= 33) && (data <= 126))
+                {
+                    ReadHandler(this, new StringEventArgs("Char " + ((char)data).ToString() + " (0x" + data.ToString("X2") + ")"));
+                }
+                else
+                {
+                    ReadHandler(this, new StringEventArgs("Byte " + data.ToString() + " (0x" + data.ToString("X2") + ")"));
+                }
+            }
+
             if (StripLF && (_LastByte == 0x0D) && (data == 0x0A))
             {
                 // Ignore LF following CR
@@ -243,7 +259,12 @@ namespace RandM.RMLib
             }
             catch (SocketException sex)
             {
-                RMLog.Exception(sex, "SocketException in TcpConnection::Connect().  ErrorCode=" + sex.ErrorCode.ToString());
+                switch (sex.ErrorCode)
+                {
+                    case 10060: break; // Connection timed out
+                    case 10061: break; // Connection refused
+                    default: RMLog.Exception(sex, "SocketException in TcpConnection::Connect().  ErrorCode=" + sex.ErrorCode.ToString()); break;
+                }
                 return false;
             }
             catch (Exception ex)
@@ -811,13 +832,37 @@ namespace RandM.RMLib
                     }
                 }
             }
+            catch (IOException ioex)
+            {
+                if (ioex.Message == "Read failure")
+                {
+                    // Apparently we have a disconnect
+                }
+                else
+                {
+                    RMLog.Exception(ioex, "IOException in TcpConnection::ReceiveData()");
+                }
+                _Stream.Close();
+                _Socket.Close();
+            }
             catch (SocketException sex)
             {
-                RMLog.Exception(sex, "SocketException in TcpConnection::ReceiveData().  ErrorCode=" + sex.ErrorCode.ToString());
+                if (sex.Message == "Connection reset by peer")
+                {
+                    // Apparently we have a disconnect
+                }
+                else
+                {
+                    RMLog.Exception(sex, "SocketException in TcpConnection::ReceiveData().  ErrorCode=" + sex.ErrorCode.ToString());
+                }
+                _Stream.Close();
+                _Socket.Close();
             }
             catch (Exception ex)
             {
                 RMLog.Exception(ex, "Exception in TcpConnection::ReceiveData()");
+                _Stream.Close();
+                _Socket.Close();
             }
         }
 
@@ -867,19 +912,38 @@ namespace RandM.RMLib
                     // TODO Will this always write all the bytes?
                     _Stream.Write(data, 0, data.Length);
                 }
+                catch (IOException ioex)
+                {
+                    if (ioex.Message == "Write failure")
+                    {
+                        // Apparently we have a disconnect
+                    }
+                    else
+                    {
+                        RMLog.Exception(ioex, "IOException in TcpConnection::WriteRaw()");
+                    }
+                    _Stream.Close();
+                    _Socket.Close();
+                }
                 catch (SocketException sex)
                 {
                     if ((sex.Message == "An established connection was aborted by the software in your host machine") ||
                         (sex.Message == "An existing connection was forcibly closed by the remote host"))
                     {
                         // Apparently we have a disconnect
-                        _Stream.Close();
-                        _Socket.Close();
                     }
                     else
                     {
-                        throw;
+                        RMLog.Exception(sex, "SocketException in TcpConnection::WriteRaw().  ErrorCode=" + sex.ErrorCode.ToString());
                     }
+                    _Stream.Close();
+                    _Socket.Close();
+                }
+                catch (Exception ex)
+                {
+                    RMLog.Exception(ex, "Exception in TcpConnection::ReceiveData()");
+                    _Stream.Close();
+                    _Socket.Close();
                 }
             }
         }

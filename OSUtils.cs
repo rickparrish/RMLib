@@ -36,6 +36,14 @@ namespace RandM.RMLib
 {
     public class OSUtils
     {
+        public enum Platform
+        {
+            DOS,
+            Linux,
+            Windows,
+            Unknown
+        }
+
         /// <summary>
         /// Gets Operating System Name, Service Pack, and Architecture using WMI with the legacy methods as a fallback
         /// </summary>

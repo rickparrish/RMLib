@@ -517,7 +517,6 @@ namespace RandM.RMLib
                                 //          understanding.
                                 return false;
                         }
-                        break;
                     }
                     else if (InLine.StartsWith("Connection:"))
                     {

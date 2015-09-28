@@ -641,6 +641,8 @@ namespace RandM.RMLib
         /// </summary>
         /// <param name="lat">Latitude (positive for north, negative for south)</param>
         /// <param name="lng">Longitude (positive for west, negative for east)</param>
+        /// <param name="tz">The timezone</param>
+        /// <param name="dst">Daylight savings time?</param>
         /// <returns>true if the sun is up at the given location, false otherwise</returns>
         static public bool IsSunUp(double lat, double lng, double tz, bool dst)
         {

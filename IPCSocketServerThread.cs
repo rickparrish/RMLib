@@ -29,7 +29,7 @@ using System.Text;
 
 namespace RandM.RMLib
 {
-    public class IPCSocketServerThread : RMThread, IDisposable
+    public class IPCSocketServerThread : RMThread
     {
         public const char EndStatement = '\xFF';
 
@@ -40,51 +40,12 @@ namespace RandM.RMLib
 
         private StringBuilder _Buffer = new StringBuilder();
         private TcpConnection _ClientConnection = null;
-        private bool _Disposed = false;
         private TcpConnection _Listener = null;
 
 
         public IPCSocketServerThread(TcpConnection serverConnection)
         {
             _Listener = serverConnection;
-        }
-
-        ~IPCSocketServerThread()
-        {
-            Dispose(false);
-        }
-
-        public void Dispose()
-        {
-            Dispose(true);
-            // This object will be cleaned up by the Dispose method.
-            // Therefore, you should call GC.SupressFinalize to
-            // take this object off the finalization queue
-            // and prevent finalization code for this object
-            // from executing a second time.
-            GC.SuppressFinalize(this);
-        }
-
-        private void Dispose(bool disposing)
-        {
-            // Check to see if Dispose has already been called.
-            if (!_Disposed)
-            {
-                // If disposing equals true, dispose all managed
-                // and unmanaged resources.
-                if (disposing)
-                {
-                    // Dispose managed resources.
-                }
-
-                // Call the appropriate methods to clean up
-                // unmanaged resources here.
-                // If disposing is false,
-                // only the following code is executed.
-
-                // Note disposing has been done.
-                _Disposed = true;
-            }
         }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1031:DoNotCatchGeneralExceptionTypes")]

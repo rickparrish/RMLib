@@ -108,7 +108,7 @@ namespace RandM.RMLib
         /// <summary>
         /// Disposes the doorkit
         /// </summary>
-        public void Dispose(bool disposing)
+        protected virtual void Dispose(bool disposing)
         {
             // Check to see if Dispose has already been called.
             if (!_Disposed)
@@ -118,17 +118,17 @@ namespace RandM.RMLib
                 if (disposing)
                 {
                     // Dispose managed resources.
+                    if (_Connection != null)
+                    {
+                        _Connection.Close();
+                        _Connection = null;
+                    }
                 }
 
                 // Call the appropriate methods to clean up
                 // unmanaged resources here.
                 // If disposing is false,
                 // only the following code is executed.
-                if (_Connection != null)
-                {
-                    _Connection.Close();
-                    _Connection = null;
-                }
 
                 // Note disposing has been done.
                 _Disposed = true;
