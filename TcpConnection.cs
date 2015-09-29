@@ -222,7 +222,10 @@ namespace RandM.RMLib
                 }
                 catch (SocketException sex)
                 {
-                    RMLog.Exception(sex, "SocketException in TcpConnection::Close().  ErrorCode=" + sex.ErrorCode.ToString());
+                    switch (sex.ErrorCode) {
+                        case 10057: break; // The socket is not connected
+                        default: RMLog.Exception(sex, "SocketException in TcpConnection::Close().  ErrorCode=" + sex.ErrorCode.ToString()); break;
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -263,6 +266,7 @@ namespace RandM.RMLib
                 {
                     case 10060: break; // Connection timed out
                     case 10061: break; // Connection refused
+                    case 10065: break; // No route to host
                     default: RMLog.Exception(sex, "SocketException in TcpConnection::Connect().  ErrorCode=" + sex.ErrorCode.ToString()); break;
                 }
                 return false;

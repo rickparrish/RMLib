@@ -461,7 +461,15 @@ namespace RandM.RMLib
                         {
                             var SSL = new SslStream(_Stream, false);
                             _Stream = SSL;
-                            SSL.AuthenticateAsServer(_Certificate, false, SslProtocols.Tls, false);
+                            try
+                            {
+                                SSL.AuthenticateAsServer(_Certificate, false, SslProtocols.Tls, false);
+                            }
+                            catch (Exception ex)
+                            {
+                                RMLog.Error("Error during SSL.AuthenticateAsServer(): " + ex.Message);
+                                return false;
+                            }
                             Protocol = "wss";
                         }
                     }
