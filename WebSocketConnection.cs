@@ -296,6 +296,7 @@ namespace RandM.RMLib
                             else
                             {
                                 _QueuedBytes = new byte[] { data[i] };
+                                _FramePayloadReceived -= 1; // Roll back how much we've received so the masking isn't broken
                             }
                         }
                         else
@@ -310,10 +311,12 @@ namespace RandM.RMLib
                             else if (i < (numberOfBytes - 1))
                             {
                                 _QueuedBytes = new byte[] { data[i], data[++i] };
+                                _FramePayloadReceived -= 2; // Roll back how much we've received so the masking isn't broken
                             }
                             else
                             {
                                 _QueuedBytes = new byte[] { data[i] };
+                                _FramePayloadReceived -= 1; // Roll back how much we've received so the masking isn't broken
                             }
                         }
 
