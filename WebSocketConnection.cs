@@ -268,7 +268,7 @@ namespace RandM.RMLib
                             _FrameMask[2] = (byte)((TempMask & 0x00FF0000) >> 16);
                             _FrameMask[1] = (byte)((TempMask & 0x0000FF00) >> 8);
                             _FrameMask[0] = (byte)(TempMask & 0x000000FF);
-                            _State = WebSocketNegotiationState.Data;
+                            _State = (_FramePayloadLength > 0) ? WebSocketNegotiationState.Data : WebSocketNegotiationState.NeedPacketStart;
                         }
                         else
                         {
