@@ -36,7 +36,7 @@ namespace RandM.RMLib
     public enum GetExternalIPv4Methods
     {
         Http80 = 0,
-        Http81 = 1,
+        Http8880 = 1,
         NatPmp = 2,
         UnicastAddress = 3,
         Upnp = 4
@@ -136,8 +136,8 @@ namespace RandM.RMLib
                         case GetExternalIPv4Methods.Http80:
                             Result = GetExternalIPv4ByHttp(80);
                             break;
-                        case GetExternalIPv4Methods.Http81:
-                            Result = GetExternalIPv4ByHttp(81);
+                        case GetExternalIPv4Methods.Http8880:
+                            Result = GetExternalIPv4ByHttp(8880);
                             break;
                         case GetExternalIPv4Methods.NatPmp:
                             Result = GetExternalIPv4ByNatPmp();
