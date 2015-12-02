@@ -89,15 +89,24 @@ namespace RandM.RMLib
         /// <param name="fileName">The name of the file to delete</param>
         static public void FileDelete(string fileName)
         {
-            try
+            IOException LastException = null;
+
+            for (int i = 0; i < 5; i++)
             {
-                // Try to remove the file
-                File.Delete(fileName);
+                try
+                {
+                    File.Delete(fileName);
+                    return;
+                }
+                catch (IOException ioex)
+                {
+                    LastException = ioex;
+                    Thread.Sleep(1000);
+                }
             }
-            catch (Exception)
-            {
-                // This function ignores errors by design
-            }
+
+            // If we get here, re-throw the last exception
+            throw LastException;
         }
 
         static public void FileMove(string sourceFileName, string destinationFileName)
