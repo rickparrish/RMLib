@@ -117,7 +117,17 @@ namespace RandM.RMLib
             Stop = false;
         }
     }
-    
+
+    public class CharEventArgs : EventArgs
+    {
+        public char Character { get; set; }
+
+        public CharEventArgs(char character)
+        {
+            Character = character;
+        }
+    }
+
     public class StringEventArgs : EventArgs
     {
         public string Text { get; set; }

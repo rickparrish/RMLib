@@ -24,6 +24,7 @@ using System.Threading;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Net.Sockets;
+using System.Linq;
 
 // TODO Need to handle telnet/rlogin negotiation
 namespace RandM.RMLib
@@ -32,40 +33,39 @@ namespace RandM.RMLib
     /// Please note that the Door class is not thread safe.  If:
     ///   1) Anybody ever uses this class, and
     ///   2) A use-case for a thread safe Door class is presented
-    /// then I'll be happy to add the required locking to make it thread safe.
+    /// then I'll be happy to consider adding the required locking to make it thread safe.
     /// </summary>
-    public class RMDoor : IDisposable
+    public static class Door
     {
         /// <summary>
         /// Contains information that was read from the dropfile (if a dropfile was read)
         /// Not all dropfiles containt he same information, so only a subset of this data is guaranteed to exist
         /// </summary>
-        public TDropInfo DropInfo = new TDropInfo();
+        public static TDropInfo DropInfo = new TDropInfo();
 
         /// <summary>
         /// Contains information about the last key that was read by the doorkit
         /// </summary>
-        public TLastKey LastKey = new TLastKey();
+        public static TLastKey LastKey = new TLastKey();
 
         /// <summary>
         /// The prompt that gets displayed when the More() method is called
         /// </summary>
-        public TMOREPrompt MOREPrompt = new TMOREPrompt();
+        public static TMOREPrompt MOREPrompt = new TMOREPrompt();
 
         /// <summary>
         /// Contains information about the current session
         /// </summary>
-        public TSession Session = new TSession();
+        public static TSession Session = new TSession();
 
-        private TcpConnection _Connection = null;
-        private bool _Disposed = false;
+        private static TcpConnection _Connection = null;
 
         #region Standard R&M Door functions
 
         /// <summary>
         /// Instantiates and initializes the doorkit with default values
         /// </summary>
-        public RMDoor()
+        static Door()
         {
             LocalEcho = false;
             PipeWrite = true;
@@ -73,65 +73,22 @@ namespace RandM.RMLib
             StripLF = true;
             StripNull = true;
 
-            OnHangUp = new OnHangUpCallback(DefaultOnHangUp);
-            OnLocalLogin = new OnLocalLoginCallback(DefaultOnLocalLogin);
-            OnStatusBar = new OnStatusBarCallback(DefaultOnStatusBar);
-            OnTimeOut = new OnTimeOutCallback(DefaultOnTimeOut);
-            OnTimeUp = new OnTimeUpCallback(DefaultOnTimeUp);
-            OnUsage = new OnUsageCallback(DefaultOnUsage);
+            OnHangUp = DefaultOnHangUp;
+            OnHangUp = DefaultOnHangUp;
+            OnLocalLogin = DefaultOnLocalLogin;
+            OnStatusBar = DefaultOnStatusBar;
+            OnTimeOut = DefaultOnTimeOut;
+            OnTimeUp = DefaultOnTimeUp;
+            OnUsage = DefaultOnUsage;
 
-            Startup();
-        }
-
-        /// <summary>
-        /// Cleans up the doorkit
-        /// </summary>
-        ~RMDoor()
-        {
-            Dispose(false);
-        }
-
-        /// <summary>
-        /// Disposes the doorkit
-        /// </summary>
-        public void Dispose()
-        {
-            Dispose(true);
-            // This object will be cleaned up by the Dispose method.
-            // Therefore, you should call GC.SupressFinalize to
-            // take this object off the finalization queue
-            // and prevent finalization code for this object
-            // from executing a second time.
-            GC.SuppressFinalize(this);
-        }
-
-        /// <summary>
-        /// Disposes the doorkit
-        /// </summary>
-        protected virtual void Dispose(bool disposing)
-        {
-            // Check to see if Dispose has already been called.
-            if (!_Disposed)
+            try
             {
-                // If disposing equals true, dispose all managed
-                // and unmanaged resources.
-                if (disposing)
-                {
-                    // Dispose managed resources.
-                    if (_Connection != null)
-                    {
-                        _Connection.Close();
-                        _Connection = null;
-                    }
-                }
-
-                // Call the appropriate methods to clean up
-                // unmanaged resources here.
-                // If disposing is false,
-                // only the following code is executed.
-
-                // Note disposing has been done.
-                _Disposed = true;
+                // Try to make the output look like it does on Windows
+                Console.OutputEncoding = Encoding.GetEncoding("Windows-1252");
+            }
+            catch (Exception)
+            {
+                // Ignore, the user will just be stuck with whatever the default is
             }
         }
 
@@ -139,7 +96,7 @@ namespace RandM.RMLib
         /// Checks for a carrier.  Always returns true for local sessions
         /// </summary>
         /// <returns>True if local or carrier exists, false if no carrier exists</returns>
-        public bool Carrier
+        public static bool Carrier
         {
             get { return (Local || _Connection.Connected); }
         }
@@ -147,7 +104,7 @@ namespace RandM.RMLib
         /// <summary>
         /// Clears the local and remote input buffers
         /// </summary>
-        public void ClearBuffers()
+        public static void ClearBuffers()
         {
             while (Crt.KeyPressed())
                 Crt.ReadKey();
@@ -161,7 +118,7 @@ namespace RandM.RMLib
         /// <summary>
         /// Closes the socket connection, which will disconnect the remote user
         /// </summary>
-        public void Disconnect()
+        public static void Disconnect()
         {
             if (!Local)
             {
@@ -176,7 +133,7 @@ namespace RandM.RMLib
         /// <summary>
         /// Clears all text to the end of the line
         /// </summary>
-        public void ClrEol()
+        public static void ClrEol()
         {
             Write(Ansi.ClrEol());
         }
@@ -184,7 +141,7 @@ namespace RandM.RMLib
         /// <summary>
         /// Clears all text on the screen
         /// </summary>
-        public void ClrScr()
+        public static void ClrScr()
         {
             Write(Ansi.ClrScr());
         }
@@ -193,7 +150,7 @@ namespace RandM.RMLib
         /// Moves the cursor down the screen
         /// </summary>
         /// <param name="count">The number of lines to move the cursor down</param>
-        public void CursorDown(int count)
+        public static void CursorDown(int count)
         {
             Write(Ansi.CursorDown(count));
         }
@@ -202,7 +159,7 @@ namespace RandM.RMLib
         /// Moves the cursor to the left on the screen
         /// </summary>
         /// <param name="count">The number of columns to move the cursor left</param>
-        public void CursorLeft(int count)
+        public static void CursorLeft(int count)
         {
             Write(Ansi.CursorLeft(count));
         }
@@ -211,7 +168,7 @@ namespace RandM.RMLib
         /// Restores the previously saved cursor position
         /// </summary>
         /// <seealso cref="CursorSave"/>
-        public void CursorRestore()
+        public static void CursorRestore()
         {
             Write(Ansi.CursorRestore());
         }
@@ -220,7 +177,7 @@ namespace RandM.RMLib
         /// Moves the cursor to the right on the screen
         /// </summary>
         /// <param name="count">The number of columns to move the cursor right</param>
-        public void CursorRight(int count)
+        public static void CursorRight(int count)
         {
             Write(Ansi.CursorRight(count));
         }
@@ -229,7 +186,7 @@ namespace RandM.RMLib
         /// Saves the current cursor position
         /// </summary>
         /// <seealso cref="CursorRestore"/>
-        public void CursorSave()
+        public static void CursorSave()
         {
             Write(Ansi.CursorSave());
         }
@@ -238,7 +195,7 @@ namespace RandM.RMLib
         /// Moves the cursor up the screen
         /// </summary>
         /// <param name="count">The number of rows to move the cursor up</param>
-        public void CursorUp(int count)
+        public static void CursorUp(int count)
         {
             Write(Ansi.CursorUp(count));
         }
@@ -248,7 +205,7 @@ namespace RandM.RMLib
         /// </summary>
         /// <param name="fileName">The file to display</param>
         /// <param name="linesBeforePause">The number of lines to display before pausing.  0 causes no pauses</param>
-        public void DisplayFile(string fileName, int linesBeforePause)
+        public static void DisplayFile(string fileName, int linesBeforePause)
         {
             if (File.Exists(fileName))
             {
@@ -269,7 +226,7 @@ namespace RandM.RMLib
             }
         }
 
-        private void DoEvents()
+        private static void DoEvents()
         {
             TimeSpan Dif = DateTime.Now.Subtract(Session.EventsTime);
             if ((Session.Events) && (Dif.TotalMilliseconds > 1000))
@@ -277,37 +234,39 @@ namespace RandM.RMLib
                 //Check For Hangup
                 if ((!Carrier) && (OnHangUp != null))
                 {
-                    OnHangUp();
+                    OnHangUp(null, EventArgs.Empty);
                 }
 
                 // Check For Time Up
                 if ((SecondsLeft < 1) && (OnTimeUp != null))
                 {
-                    OnTimeUp();
+                    OnTimeUp(null, EventArgs.Empty);
                 }
 
                 // Check For Idle Timeout
                 if ((Session.DoIdleCheck) && (SecondsIdle > Session.MaxIdle) && (OnTimeOut != null))
                 {
-                    OnTimeOut();
+                    OnTimeOut(null, EventArgs.Empty);
                 }
 
                 // Check For Time Up Warning
+                // TODO Fix this so it's not dependent on a per-second check
                 if ((SecondsLeft % 60 == 1) && (SecondsLeft / 60 <= 5) && (OnTimeUpWarning != null))
                 {
-                    OnTimeUpWarning((int)(SecondsLeft / 60));
+                    OnTimeUpWarning(null, EventArgs.Empty);
                 }
 
                 // Check For Idle Timeout Warning
+                // TODO Fix this so it's not dependent on a per-second check
                 if ((Session.DoIdleCheck) && ((Session.MaxIdle - SecondsIdle) % 60 == 1) && ((Session.MaxIdle - SecondsIdle) / 60 <= 5) && (OnTimeOutWarning != null))
                 {
-                    OnTimeOutWarning((int)(Session.MaxIdle - SecondsIdle) / 60);
+                    OnTimeOutWarning(null, EventArgs.Empty);
                 }
 
                 // Update Status Bar
                 if (OnStatusBar != null)
                 {
-                    OnStatusBar();
+                    OnStatusBar(null, EventArgs.Empty);
                 }
 
                 Session.EventsTime = DateTime.Now;
@@ -324,7 +283,7 @@ namespace RandM.RMLib
         /// <param name="foregroundColour">Foreground colour for the </param>
         /// <param name="backgroundColour"></param>
         /// <param name="borderStyle"></param>
-        public void DrawBox(int left, int top, int right, int bottom, int foregroundColour, int backgroundColour, CrtPanel.BorderStyle borderStyle)
+        public static void DrawBox(int left, int top, int right, int bottom, int foregroundColour, int backgroundColour, CrtPanel.BorderStyle borderStyle)
         {
             // Characters for the box
             char TopLeft = '\0';
@@ -411,7 +370,7 @@ namespace RandM.RMLib
         /// Move the cursor to the given x coordinate on the current line
         /// </summary>
         /// <param name="column">The 1-based x coordinate to move to</param>
-        public void GotoX(int column)
+        public static void GotoX(int column)
         {
             Write(Ansi.GotoX(column));
         }
@@ -421,7 +380,7 @@ namespace RandM.RMLib
         /// </summary>
         /// <param name="column">The 1-based x coordinate</param>
         /// <param name="row">The 1-based y coordinate</param>
-        public void GotoXY(int column, int row)
+        public static void GotoXY(int column, int row)
         {
             Write(Ansi.GotoXY(column, row));
         }
@@ -430,7 +389,7 @@ namespace RandM.RMLib
         /// Move the cursor to the given y coordinate on the current column
         /// </summary>
         /// <param name="row">The 1-based y coordinate to move to</param>
-        public void GotoY(int row)
+        public static void GotoY(int row)
         {
             Write(Ansi.GotoY(row));
         }
@@ -439,7 +398,7 @@ namespace RandM.RMLib
         /// Checks whether a key has been pressed on either the local or remote side
         /// </summary>
         /// <returns>True if a keypress is waiting, false if no keypress is available</returns>
-        public bool KeyPressed()
+        public static bool KeyPressed()
         {
             if (Local)
             {
@@ -455,23 +414,23 @@ namespace RandM.RMLib
         /// <summary>
         /// Checks whether the door is running in local mode
         /// </summary>
-        public bool Local
+        public static bool Local
         {
             get
             {
-                return (DropInfo.SocketHandle == -1);
+                return ((DropInfo.ComType == 0) || (DropInfo.SocketHandle == -1));
             }
         }
 
         /// <summary>
         /// Determines whether local echo is enabled
         /// </summary>
-        public bool LocalEcho { get; set; }
+        public static bool LocalEcho { get; set; }
 
         /// <summary>
         /// Displays a MORE prompt and waits for a keypress.  Erased the prompt after a key is pressed
         /// </summary>
-        public void More()
+        public static void More()
         {
             string Line = "";
             int LineLength = 0;
@@ -505,7 +464,7 @@ namespace RandM.RMLib
         /// Initializes the socket (when not in local mode)
         /// </summary>
         /// <returns>True if the socket was opened, false if it was not</returns>
-        public bool Open()
+        public static bool Open()
         {
             if (Local)
             {
@@ -515,6 +474,8 @@ namespace RandM.RMLib
             {
                 switch (DropInfo.ComType)
                 {
+                    case 0: return true; // Local
+                    case 1: return false; // Serial
                     case 2: _Connection = new TelnetConnection(); break;
                     case 3: _Connection = new RLoginConnection(); break;
                     case 4: _Connection = new WebSocketConnection(false); break;
@@ -531,7 +492,7 @@ namespace RandM.RMLib
         /// </summary>
         /// <param name="AText">The string with pipe sequences</param>
         /// <returns>A string with ansi sequences in place of pipe sequences</returns>
-        private string PipeToAnsi(string AText)
+        private static string PipeToAnsi(string AText)
         {
             if (AText.Contains("|"))
             {
@@ -552,13 +513,13 @@ namespace RandM.RMLib
         /// <summary>
         /// Determines whether pipe sequences should automatically be transformed to ansi sequences
         /// </summary>
-        public bool PipeWrite { get; set; }
+        public static bool PipeWrite { get; set; }
 
         /// <summary>
         /// Reads a byte from either the local or remote side with no translation
         /// </summary>
         /// <returns>A byte if one was available, or null if no key was waiting</returns>
-        public byte? ReadByte()
+        public static byte? ReadByte()
         {
             byte? B = null;
             LastKey.Location = DoorKeyLocation.None;
@@ -593,7 +554,7 @@ namespace RandM.RMLib
         /// Reads a key from either the local or remote side
         /// </summary>
         /// <returns>A key if one was available, or null if no key was waiting</returns>
-        public char? ReadKey()
+        public static char? ReadKey()
         {
             char? Ch = null;
             LastKey.Location = DoorKeyLocation.None;
@@ -613,29 +574,31 @@ namespace RandM.RMLib
                         {
                             case 'H':
                                 Ch = (char)DoorKey.UpArrow;
-                                LastKey.Extended = false;
+                                LastKey.Extended = true;
                                 LastKey.Location = DoorKeyLocation.Local;
                                 break;
                             case 'K':
                                 Ch = (char)DoorKey.LeftArrow;
-                                LastKey.Extended = false;
+                                LastKey.Extended = true;
                                 LastKey.Location = DoorKeyLocation.Local;
                                 break;
                             case 'M':
                                 Ch = (char)DoorKey.RightArrow;
-                                LastKey.Extended = false;
+                                LastKey.Extended = true;
                                 LastKey.Location = DoorKeyLocation.Local;
                                 break;
                             case 'P':
                                 Ch = (char)DoorKey.DownArrow;
-                                LastKey.Extended = false;
+                                LastKey.Extended = true;
                                 LastKey.Location = DoorKeyLocation.Local;
                                 break;
                             default:
-                                if ((!Local) && (OnSysOpKey != null) && (!OnSysOpKey((char)Ch)))
+                                // Non-arrow special key, pass to door to see if they want to do something
+                                // with it (ie maybe there's a shortcut for hang-up).  Either way, this special
+                                // key doesn't get added to the input buffer
+                                if ((!Local) && (OnSysOpKey != null))
                                 {
-                                    LastKey.Extended = true;
-                                    LastKey.Location = DoorKeyLocation.Local;
+                                    OnSysOpKey(null, new CharEventArgs((char)Ch));
                                 }
                                 break;
                         }
@@ -758,7 +721,7 @@ namespace RandM.RMLib
         /// A shortcut for TextBox()
         /// </summary>
         /// <returns>The line of text input by the user</returns>
-        public string ReadLn()
+        public static string ReadLn()
         {
             return TextBox("", CharacterMask.All, '\0', 50, 50, 7);
         }
@@ -766,7 +729,7 @@ namespace RandM.RMLib
         /// <summary>
         /// The number of seconds the user has been idle for
         /// </summary>
-        public int SecondsIdle
+        public static int SecondsIdle
         {
             get
             {
@@ -777,7 +740,7 @@ namespace RandM.RMLib
         /// <summary>
         /// The number of seconds the user has left this call
         /// </summary>
-        public int SecondsLeft
+        public static int SecondsLeft
         {
             get
             {
@@ -788,7 +751,7 @@ namespace RandM.RMLib
         /// <summary>
         /// The number of seconds the user has been in the door
         /// </summary>
-        public int SecondsOn
+        public static int SecondsOn
         {
             get
             {
@@ -799,19 +762,31 @@ namespace RandM.RMLib
         /// <summary>
         /// Determines whether "seth" (aka LORD) sequences should be parsed
         /// </summary>
-        public bool SethWrite { get; set; }
+        public static bool SethWrite { get; set; }
+
+        /// <summary>
+        /// Closes the connection in a way that ensures the caller's connection doesn't get dropped
+        /// Very important to close this before your door quits!
+        /// </summary>
+        public static void Shutdown() {
+            if (_Connection != null)
+            {
+                _Connection.Close();
+                _Connection = null;
+            }
+        }
 
         /// <summary>
         /// Parses the command-line and gets the doorkit ready for use
         /// </summary>
-        private void Startup()
+        public static void Startup()
         {
             string DropFile = "";
             bool Local = false;
             int Node = 0;
             int Socket = -1;
 
-            foreach (string Arg in Environment.GetCommandLineArgs())
+            foreach (string Arg in Environment.GetCommandLineArgs().Skip(1)) // Skip 1 because first is path/filename of door's EXE
             {
                 if ((Arg.Length >= 2) && ((Arg[0] == '/') || (Arg[0] == '-')))
                 {
@@ -851,7 +826,7 @@ namespace RandM.RMLib
                 DropInfo.Node = Node;
                 if (OnLocalLogin != null)
                 {
-                    OnLocalLogin();
+                    OnLocalLogin(null, EventArgs.Empty);
                     ClrScr();
                 }
             }
@@ -892,7 +867,7 @@ namespace RandM.RMLib
             }
             else if (OnUsage != null)
             {
-                OnUsage();
+                OnUsage(null, EventArgs.Empty);
             }
 
             if (!Local)
@@ -915,7 +890,7 @@ namespace RandM.RMLib
         /// <summary>
         /// Determines whether the LF in CR+LF pairs is stripped out
         /// </summary>
-        public bool StripLF
+        public static bool StripLF
         {
             get
             {
@@ -940,7 +915,7 @@ namespace RandM.RMLib
         /// <summary>
         /// Determines whether the NULL in CR+NULL pairs is stripped out
         /// </summary>
-        public bool StripNull
+        public static bool StripNull
         {
             get
             {
@@ -967,7 +942,7 @@ namespace RandM.RMLib
         /// </summary>
         /// <param name="text">The text containing seth sequences</param>
         /// <returns>The text with seth sequences removed</returns>
-        public string StripSeth(string text)
+        public static string StripSeth(string text)
         {
             if (text.Contains("`"))
             {
@@ -1013,7 +988,7 @@ namespace RandM.RMLib
         /// <summary>
         /// A very basic sysop chat feature
         /// </summary>
-        public void SysopChat()
+        public static void SysopChat()
         {
             char? Ch = null;
             DoorKeyLocation OurLastKeyLocation = DoorKeyLocation.None;
@@ -1054,7 +1029,7 @@ namespace RandM.RMLib
         /// Sets both the foreground and background colour to use for future write operations
         /// </summary>
         /// <param name="attribute">The new colour to use</param>
-        public void TextAttr(int attribute)
+        public static void TextAttr(int attribute)
         {
             Write(Ansi.TextAttr(attribute));
         }
@@ -1063,7 +1038,7 @@ namespace RandM.RMLib
         /// Sets the background colour to use for future write operations (the foreground colour is unchanged)
         /// </summary>
         /// <param name="colour">The new background colour to use</param>
-        public void TextBackground(int colour)
+        public static void TextBackground(int colour)
         {
             Write(Ansi.TextBackground(colour));
         }
@@ -1078,7 +1053,7 @@ namespace RandM.RMLib
         /// <param name="maximumLength">The maximum length of the input string (if this is greater than numberOfCharactersToDisplay, the textbox will scroll)</param>
         /// <param name="attribute">The colour of the textbox and input text</param>
         /// <returns>The line of text input by the user</returns>
-        public string TextBox(string defaultText, string allowedCharacters, char passwordCharacter, int numberOfCharactersToDisplay, int maximumLength, int attribute)
+        public static string TextBox(string defaultText, string allowedCharacters, char passwordCharacter, int numberOfCharactersToDisplay, int maximumLength, int attribute)
         {
             if (defaultText.Length > maximumLength)
             {
@@ -1189,7 +1164,7 @@ namespace RandM.RMLib
         /// Sets the foreground colour to use for future write operations (the background colour is unchanged)
         /// </summary>
         /// <param name="colour">The new foreground colour to use</param>
-        public void TextColor(int colour)
+        public static void TextColor(int colour)
         {
             Write(Ansi.TextColor(colour));
         }
@@ -1198,7 +1173,7 @@ namespace RandM.RMLib
         /// Writes text to both the local and remote screen
         /// </summary>
         /// <param name="text">The text to write</param>
-        public void Write(string text)
+        public static void Write(string text)
         {
             if (PipeWrite && (text.Contains("|"))) text = PipeToAnsi(text);
 
@@ -1405,7 +1380,7 @@ namespace RandM.RMLib
         /// <summary>
         /// Advances the cursor to the beginning of the next line, scrolling the screen if necessary
         /// </summary>
-        public void WriteLn()
+        public static void WriteLn()
         {
             Write("\r\n");
         }
@@ -1414,12 +1389,12 @@ namespace RandM.RMLib
         /// Outputs a string of text to the screen before advancing the cursor to the beginning of the next line, scrolling if necessary
         /// </summary>
         /// <param name="text">The text to be displayed</param>
-        public void WriteLn(string text)
+        public static void WriteLn(string text)
         {
             Write(text + "\r\n");
         }
 
-        private void ReadDoor32(string AFile)
+        private static void ReadDoor32(string AFile)
         {
             if (File.Exists(AFile))
             {
@@ -1441,7 +1416,7 @@ namespace RandM.RMLib
             }
         }
 
-        private void ReadInfo(string AFile)
+        private static void ReadInfo(string AFile)
         {
             if (File.Exists(AFile))
             {
@@ -1475,17 +1450,14 @@ namespace RandM.RMLib
         /// <summary>
         /// The event that gets raised for each command-line parameter
         /// </summary>
-        public event EventHandler<CommandLineParameterEventArgs> OnCLP = null;
+        public static event EventHandler<CommandLineParameterEventArgs> OnCLP = null;
 
         /// <summary>
-        /// The method delegate that gets called when the user hangs up in the door
+        /// The event that gets raised when the user hangs up in the door
         /// </summary>
-        public OnHangUpCallback OnHangUp = null;
-        /// <summary>
-        /// The method delegate that gets called when the user hangs up in the door
-        /// </summary>
-        public delegate void OnHangUpCallback();
-        private void DefaultOnHangUp()
+        public static event EventHandler OnHangUp = null;
+
+        private static void DefaultOnHangUp(object sender, EventArgs e)
         {
             TextAttr(15);
             ClrScr();
@@ -1496,14 +1468,11 @@ namespace RandM.RMLib
         }
 
         /// <summary>
-        /// The method delegate that gets called when a user logs in locally
+        /// The event that gets raised when a user logs in locally
         /// </summary>
-        public OnLocalLoginCallback OnLocalLogin = null;
-        /// <summary>
-        /// The method delegate that gets called when a user logs in locally
-        /// </summary>
-        public delegate void OnLocalLoginCallback();
-        private void DefaultOnLocalLogin()
+        public static event EventHandler OnLocalLogin = null;
+
+        private static void DefaultOnLocalLogin(object sender, EventArgs e)
         {
             ClrScr();
             DrawBox(2, 2, 18, 6, Crt.White, Crt.Blue, CrtPanel.BorderStyle.Double);
@@ -1518,14 +1487,11 @@ namespace RandM.RMLib
         }
 
         /// <summary>
-        /// The method delegate that gets called when the status bar needs to be updated
+        /// The event that gets raised when the status bar needs to be updated
         /// </summary>
-        public OnStatusBarCallback OnStatusBar = null;
-        /// <summary>
-        /// The method delegate that gets called when the status bar needs to be updated
-        /// </summary>
-        public delegate void OnStatusBarCallback();
-        private void DefaultOnStatusBar()
+        public static event EventHandler OnStatusBar = null;
+        
+        private static void DefaultOnStatusBar(object sender, EventArgs e)
         {
             Crt.FastWrite("þ                            þ                  þ             þ                þ", 1, 25, 30);
             Crt.FastWrite((DropInfo.RealName + new string(' ', 26)).Substring(0, 26), 3, 25, 31);
@@ -1535,23 +1501,16 @@ namespace RandM.RMLib
         }
 
         /// <summary>
-        /// The method delegate that gets called when a "special" key is pressed in the local window
+        /// The event that gets raised when a "special" key is pressed in the local window
         /// </summary>
-        public OnSysOpKeyCallback OnSysOpKey = null;
-        /// <summary>
-        /// The method delegate that gets called when a "special" key is pressed in the local window
-        /// </summary>
-        public delegate bool OnSysOpKeyCallback(char AKey);
+        public static event EventHandler<CharEventArgs> OnSysOpKey = null;
 
         /// <summary>
-        /// The method delegate that gets called when the user idles for too long
+        /// The event that gets raised when the user idles for too long
         /// </summary>
-        public OnTimeOutCallback OnTimeOut = null;
-        /// <summary>
-        /// The method delegate that gets called when the user idles for too long
-        /// </summary>
-        public delegate void OnTimeOutCallback();
-        private void DefaultOnTimeOut()
+        public static event EventHandler OnTimeOut = null;
+
+        private static void DefaultOnTimeOut(object sender, EventArgs e)
         {
             TextAttr(15);
             ClrScr();
@@ -1562,23 +1521,16 @@ namespace RandM.RMLib
         }
 
         /// <summary>
-        /// The method delegate that gets called each minute when the user is idling
+        /// The event that gets raised each minute when the user is idling
         /// </summary>
-        public OnTimeOutWarningCallback OnTimeOutWarning = null;
-        /// <summary>
-        /// The method delegate that gets called each minute when the user is idling
-        /// </summary>
-        public delegate void OnTimeOutWarningCallback(int AMinutesLeft);
+        public static event EventHandler OnTimeOutWarning = null;
 
         /// <summary>
-        /// The method delegate that gets called when the user runs out of time
+        /// The event that gets raised when the user runs out of time
         /// </summary>
-        public OnTimeUpCallback OnTimeUp = null;
-        /// <summary>
-        /// The method delegate that gets called when the user runs out of time
-        /// </summary>
-        public delegate void OnTimeUpCallback();
-        private void DefaultOnTimeUp()
+        public static event EventHandler OnTimeUp = null;
+
+        private static void DefaultOnTimeUp(object sender, EventArgs e)
         {
             TextAttr(15);
             ClrScr();
@@ -1589,23 +1541,16 @@ namespace RandM.RMLib
         }
 
         /// <summary>
-        /// The method delegate that gets called each minute when the user is running out of time
+        /// The event that gets raised each minute when the user is running out of time
         /// </summary>
-        public OnTimeUpWarningCallback OnTimeUpWarning = null;
-        /// <summary>
-        /// The method delegate that gets called each minute when the user is running out of time
-        /// </summary>
-        public delegate void OnTimeUpWarningCallback(int AMinutesLeft);
+        public static event EventHandler OnTimeUpWarning = null;
 
         /// <summary>
-        /// The method delegate that gets called when the usage screen needs to be displayed
+        /// The event that gets raised when the usage screen needs to be displayed
         /// </summary>
-        public OnUsageCallback OnUsage = null;
-        /// <summary>
-        /// The method delegate that gets called when the usage screen needs to be displayed
-        /// </summary>
-        public delegate void OnUsageCallback();
-        private void DefaultOnUsage()
+        public static event EventHandler OnUsage = null;
+
+        private static void DefaultOnUsage(object sender, EventArgs e)
         {
             string EXE = Path.GetFileName(ProcessUtils.ExecutablePath);
 
