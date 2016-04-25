@@ -573,23 +573,19 @@ namespace RandM.RMLib
                         switch (Ch)
                         {
                             case 'H':
-                                Ch = (char)DoorKey.UpArrow;
-                                LastKey.Extended = true;
+                                Ch = ExtendedKeys.UpArrow;
                                 LastKey.Location = DoorKeyLocation.Local;
                                 break;
                             case 'K':
-                                Ch = (char)DoorKey.LeftArrow;
-                                LastKey.Extended = true;
+                                Ch = ExtendedKeys.LeftArrow;
                                 LastKey.Location = DoorKeyLocation.Local;
                                 break;
                             case 'M':
-                                Ch = (char)DoorKey.RightArrow;
-                                LastKey.Extended = true;
+                                Ch = ExtendedKeys.RightArrow;
                                 LastKey.Location = DoorKeyLocation.Local;
                                 break;
                             case 'P':
-                                Ch = (char)DoorKey.DownArrow;
-                                LastKey.Extended = true;
+                                Ch = ExtendedKeys.DownArrow;
                                 LastKey.Location = DoorKeyLocation.Local;
                                 break;
                             default:
@@ -605,7 +601,6 @@ namespace RandM.RMLib
                     }
                     else
                     {
-                        LastKey.Extended = false;
                         LastKey.Location = DoorKeyLocation.Local;
                     }
                 }
@@ -647,23 +642,19 @@ namespace RandM.RMLib
                                     switch (ThirdChar)
                                     {
                                         case 'A':
-                                            Ch = (char)DoorKey.UpArrow;
-                                            LastKey.Extended = true;
+                                            Ch = Door.ExtendedKeys.UpArrow;
                                             LastKey.Location = DoorKeyLocation.Remote;
                                             break;
                                         case 'B':
-                                            Ch = (char)DoorKey.DownArrow;
-                                            LastKey.Extended = true;
+                                            Ch = Door.ExtendedKeys.DownArrow;
                                             LastKey.Location = DoorKeyLocation.Remote;
                                             break;
                                         case 'C':
-                                            Ch = (char)DoorKey.RightArrow;
-                                            LastKey.Extended = true;
+                                            Ch = Door.ExtendedKeys.RightArrow;
                                             LastKey.Location = DoorKeyLocation.Remote;
                                             break;
                                         case 'D':
-                                            Ch = (char)DoorKey.LeftArrow;
-                                            LastKey.Extended = true;
+                                            Ch = Door.ExtendedKeys.LeftArrow;
                                             LastKey.Location = DoorKeyLocation.Remote;
                                             break;
                                     }
@@ -672,21 +663,18 @@ namespace RandM.RMLib
                             else
                             {
                                 // ESC not followed by [
-                                LastKey.Extended = false;
                                 LastKey.Location = DoorKeyLocation.Remote;
                             }
                         }
                         else
                         {
                             // ESC not followed by anything
-                            LastKey.Extended = false;
                             LastKey.Location = DoorKeyLocation.Remote;
                         }
                     }
                     else
                     {
                         // Not an ESC
-                        LastKey.Extended = false;
                         LastKey.Location = DoorKeyLocation.Remote;
                     }
                 }
@@ -837,12 +825,6 @@ namespace RandM.RMLib
             }
             else if (!string.IsNullOrEmpty(DropFile))
             {
-                int SleepLoops = 0;
-                while ((SleepLoops++ < 5) && (!File.Exists(DropFile)))
-                {
-                    Thread.Sleep(1000);
-                }
-
                 if (File.Exists(DropFile))
                 {
                     if (DropFile.ToUpper().IndexOf("DOOR32.SYS") != -1)
@@ -857,17 +839,25 @@ namespace RandM.RMLib
                     {
                         ClrScr();
                         WriteLn();
-                        WriteLn("  Drop File Not Found");
+                        WriteLn("  Drop File '" + Path.GetFileName(DropFile) + "' Not Supported");
                         WriteLn();
                         Thread.Sleep(2500);
-                        throw new Exception("Drop File Not Found"); //Environment.Exit(0);
+                        throw new Exception("Drop File '" + Path.GetFileName(DropFile) + "' Not Supported");
                     }
-
+                }
+                else
+                {
+                    ClrScr();
+                    WriteLn();
+                    WriteLn("  Drop File '" + DropFile + "' Not Found");
+                    WriteLn();
+                    Thread.Sleep(2500);
+                    throw new Exception("Drop File '" + DropFile + "' Not Found");
                 }
             }
-            else if (OnUsage != null)
+            else
             {
-                OnUsage(null, EventArgs.Empty);
+                OnUsage?.Invoke(null, EventArgs.Empty);
             }
 
             if (!Local)
@@ -1581,6 +1571,32 @@ namespace RandM.RMLib
         }
 
         #endregion
+
+        /// <summary>
+        /// Special keys that can be returned by ReadKey()
+        /// </summary>
+        public static class ExtendedKeys
+        {
+            /// <summary>
+            /// The down arrow key
+            /// </summary>
+            public const char DownArrow = '\u2193';
+
+            /// <summary>
+            /// The left arrow key
+            /// </summary>
+            public const char LeftArrow = '\u2190';
+
+            /// <summary>
+            /// The right arrow key
+            /// </summary>
+            public const char RightArrow = '\u2192';
+
+            /// <summary>
+            /// The up arrow key
+            /// </summary>
+            public const char UpArrow = '\u2191';
+        }
     }
 
     /// <summary>
@@ -1597,32 +1613,6 @@ namespace RandM.RMLib
         /// The ANSI (coloured) emulation type
         /// </summary>
         ANSI
-    }
-
-    /// <summary>
-    /// Special keys that can be returned by ReadKey()
-    /// </summary>
-    public enum DoorKey
-    {
-        /// <summary>
-        /// The down arrow key
-        /// </summary>
-        DownArrow = 0xA0,
-
-        /// <summary>
-        /// The left arrow key
-        /// </summary>
-        LeftArrow = 0xA1,
-
-        /// <summary>
-        /// The right arrow key
-        /// </summary>
-        RightArrow = 0xA2,
-
-        /// <summary>
-        /// The up arrow key
-        /// </summary>
-        UpArrow = 0xA3
     }
 
     /// <summary>
@@ -1734,11 +1724,6 @@ namespace RandM.RMLib
         /// Character code for last key that was pressed
         /// </summary>
         public char Ch = '\0';
-
-        /// <summary>
-        /// Was the last keypress an extended key (ie cursor or F1, etc)
-        /// </summary>
-        public bool Extended = false;
 
         /// <summary>
         /// Which side pressed the last key (LOCAL or REMOTE)
