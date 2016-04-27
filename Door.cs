@@ -820,6 +820,7 @@ namespace RandM.RMLib
             }
             else if ((Socket > 0) && (Node > 0))
             {
+                if (DropInfo.ComType == 0) DropInfo.ComType = 2;
                 DropInfo.SocketHandle = Socket;
                 DropInfo.Node = Node;
             }
