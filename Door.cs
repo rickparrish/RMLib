@@ -756,7 +756,8 @@ namespace RandM.RMLib
         /// Closes the connection in a way that ensures the caller's connection doesn't get dropped
         /// Very important to close this before your door quits!
         /// </summary>
-        public static void Shutdown() {
+        public static void Shutdown()
+        {
             if (_Connection != null)
             {
                 _Connection.Close();
@@ -828,22 +829,33 @@ namespace RandM.RMLib
             {
                 if (File.Exists(DropFile))
                 {
-                    if (DropFile.ToUpper().IndexOf("DOOR32.SYS") != -1)
+                    // 'DropFile' contains a full filename, so confirm it is a DOOR32.SYS file
+                    if (DropFile.ToUpper().Contains("DOOR32.SYS"))
                     {
                         ReadDoor32(DropFile);
                     }
-                    else if (DropFile.ToUpper().IndexOf("INFO.") != -1)
-                    {
-                        ReadInfo(DropFile);
-                    }
                     else
                     {
+                        // TODOX Maybe support other drop file formats for Linux, and assume local mode when they're used (ie DOOR.SYS, DORINFO.DEF)
                         ClrScr();
                         WriteLn();
                         WriteLn("  Drop File '" + Path.GetFileName(DropFile) + "' Not Supported");
                         WriteLn();
                         Thread.Sleep(2500);
                         throw new Exception("Drop File '" + Path.GetFileName(DropFile) + "' Not Supported");
+                    }
+                }
+                else if (Directory.Exists(DropFile))
+                {
+                    // 'DropFile' only contains a path, so try both door32.sys and DOOR32.SYS (for Linux, which is case sensitive)
+                    if (!ReadDoor32(StringUtils.PathCombine(DropFile, "door32.sys")) && !ReadDoor32(StringUtils.PathCombine(DropFile, "DOOR32.SYS")))
+                    {
+                        ClrScr();
+                        WriteLn();
+                        WriteLn("  DOOR32.SYS not found in '" + DropFile + "'");
+                        WriteLn();
+                        Thread.Sleep(2500);
+                        throw new Exception("DOOR32.SYS not found in '" + DropFile + "'");
                     }
                 }
                 else
@@ -1385,7 +1397,7 @@ namespace RandM.RMLib
             Write(text + "\r\n");
         }
 
-        private static void ReadDoor32(string AFile)
+        private static bool ReadDoor32(string AFile)
         {
             if (File.Exists(AFile))
             {
@@ -1396,7 +1408,6 @@ namespace RandM.RMLib
                 int.TryParse(Lines[2], out DropInfo.Baud); // 3 - Baud rate
                 // 4 - BBSID (software name and version)
                 int.TryParse(Lines[4], out DropInfo.RecPos); // 5 - User record position (1-based)
-                DropInfo.RecPos -= 1;
                 DropInfo.RealName = Lines[5]; // 6 - User's real name
                 DropInfo.Alias = Lines[6]; // 7 - User's handle/alias
                 int.TryParse(Lines[7], out DropInfo.Access); // 8 - User's security level
@@ -1404,33 +1415,11 @@ namespace RandM.RMLib
                 DropInfo.MaxTime *= 60;
                 DropInfo.Emulation = (Lines[9] == "0") ? DoorEmulationType.ASCII : DoorEmulationType.ANSI; // 10 - Emulation (0=Ascii, 1=Ansi, 2=Avatar, 3=RIP, 4=MaxGfx)
                 int.TryParse(Lines[10], out DropInfo.Node); // 11 - Current node number
+                return true;
             }
+
+            return false;
         }
-
-        private static void ReadInfo(string AFile)
-        {
-            if (File.Exists(AFile))
-            {
-                string[] Lines = FileUtils.FileReadAllLines(AFile);
-
-                int.TryParse(Lines[0], out DropInfo.RecPos); // 1 - Account Number (0 Based)}
-                DropInfo.Emulation = (Lines[1] == "3") ? DoorEmulationType.ANSI : DoorEmulationType.ASCII; // 2 - Emulation (3=Ansi, Other = Ascii)}
-                // 3 - RIP YES or RIP NO}
-                DropInfo.Fairy = (Lines[3].ToUpper().Trim() == "FAIRY YES") ? true : false; // 4 - FAIRY YES or FAIRY NO}
-                int.TryParse(Lines[4], out DropInfo.MaxTime); // 5 - User's Time Left (In Minutes)}
-                DropInfo.MaxTime *= 60;
-                DropInfo.Alias = Lines[5]; // 6 - User's Handle/Alias}
-                DropInfo.RealName = Lines[6]; // 7 - User's First Name}
-                if (!string.IsNullOrEmpty(Lines[7].Trim())) DropInfo.RealName += Lines[7]; // 8 - User's Last Name}
-                int.TryParse(Lines[8], out DropInfo.SocketHandle); // 9 - Comm Port}
-                int.TryParse(Lines[9], out DropInfo.Baud); // 10 - Caller Baud Rate}
-                // 11 - Port Baud Rate}
-                // 12 - FOSSIL or INTERNAL or TELNET or WC5
-                DropInfo.Registered = (Lines[12].ToUpper().Trim() == "REGISTERED") ? true : false; // 13 - REGISTERED or UNREGISTERED}
-                DropInfo.Clean = (Lines[13].ToUpper().Trim() == "CLEAN MODE ON") ? true : false; // 14 - CLEAN MODE ON or CLEAN MODE OFF}
-            }
-        }
-
         #endregion
 
         #region Event handlers
@@ -1481,7 +1470,7 @@ namespace RandM.RMLib
         /// The event that gets raised when the status bar needs to be updated
         /// </summary>
         public static event EventHandler OnStatusBar = null;
-        
+
         private static void DefaultOnStatusBar(object sender, EventArgs e)
         {
             Crt.FastWrite("þ                            þ                  þ             þ                þ", 1, 25, 30);
@@ -1650,69 +1639,54 @@ namespace RandM.RMLib
     public class TDropInfo
     {
         /// <summary>
-        /// User's access level.  DOOR32.SYS only
+        /// User's access level.
         /// </summary>
         public int Access = 0;
 
         /// <summary>
-        /// User's alias.  DOOR32.SYS and INFO.*
+        /// User's alias.
         /// </summary>
         public string Alias = "Alias";
 
         /// <summary>
-        /// Connection baud rate.  DOOR32.SYS and INFO.*
+        /// Connection baud rate.
         /// </summary>
         public int Baud = 0;
 
         /// <summary>
-        /// Is LORD in "clean" mode?  INFO.* only
-        /// </summary>
-        public bool Clean = false;
-
-        /// <summary>
-        /// Com type (0=local, 1=serial, 2=telnet, 3=rlogin, 4=websocket)  DOOR32.SYS only
+        /// Com type (0=local, 1=serial, 2=telnet, 3=rlogin, 4=websocket)
         /// </summary>
         public int ComType = 0;
 
         /// <summary>
-        /// User's emulation (ANSI or ASCII)  DOOR32.SYS and INFO.*
+        /// User's emulation (ANSI or ASCII)
         /// </summary>
         public DoorEmulationType Emulation = DoorEmulationType.ANSI;
 
         /// <summary>
-        /// Does user have a fairy?  INFO.* only
-        /// </summary>
-        public bool Fairy = false;
-
-        /// <summary>
-        /// Total seconds user has this session.  DOOR32.SYS and INFO.*
+        /// Total seconds user has this session.
         /// </summary>
         public int MaxTime = 3600;
 
         /// <summary>
-        /// Node number.  DOOR32.SYS only
+        /// Node number.
         /// </summary>
         public int Node = 0;
 
         /// <summary>
-        /// User's real name.  DOOR32.SYS and INFO.*
+        /// User's real name.
         /// </summary>
         public string RealName = "Real Name";
 
         /// <summary>
-        /// User's user file record position (0 based)  DOOR32.SYS and INFO.*
+        /// User's user file record position (1 based)
         /// </summary>
         public int RecPos = -1;
 
         /// <summary>
-        /// Is LORD registered?  INFO.* only
+        /// Socket handle. 
         /// </summary>
-        public bool Registered = false;
-
-        /// <summary>
-        /// Socket handle.  DOOR32.SYS and INFO.*
-        /// </summary>
-        public int SocketHandle = -1;           //{DI} {Comm/Socket Number}
+        public int SocketHandle = -1;
     }
 
     /// <summary>
