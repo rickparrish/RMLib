@@ -21,6 +21,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
@@ -257,6 +258,11 @@ namespace RandM.RMLib
                     _RemoteIP = ((IPEndPoint)_Socket.RemoteEndPoint).Address.ToString();
                     _RemotePort = ((IPEndPoint)_Socket.RemoteEndPoint).Port;
                     _Stream = new NetworkStream(_Socket);
+
+                    if (_RemoteIP.ToLower().StartsWith("::ffff:"))
+                    {
+                        _RemoteIP = _RemoteIP.Substring(7); // Trim leading ::ffff:
+                    }
                 }
                 return _Socket.Connected;
             }
@@ -450,19 +456,11 @@ namespace RandM.RMLib
 
             try
             {
-                IPEndPoint LocalEP;
-                if ((string.IsNullOrEmpty(ipAddress)) || (ipAddress == "0.0.0.0"))
-                {
-                    LocalEP = new IPEndPoint(IPAddress.Any, port);
-                }
-                else
-                {
-                    LocalEP = new IPEndPoint(IPAddress.Parse(ipAddress), port);
-                }
-
-                _Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                IPAddress IPA = ParseIPAddress(ipAddress);
+                _Socket = new Socket(IPA.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+                _Socket.SetSocketOption(SocketOptionLevel.IPv6, (SocketOptionName)27, false); // 27 = SocketOptionName.IPv6Only
                 _Socket.Blocking = true;
-                _Socket.Bind(LocalEP);
+                _Socket.Bind(new IPEndPoint(IPA, port));
                 _Socket.Listen(5);
 
                 return true;
@@ -622,6 +620,11 @@ namespace RandM.RMLib
                     _RemoteIP = ((IPEndPoint)_Socket.RemoteEndPoint).Address.ToString();
                     _RemotePort = ((IPEndPoint)_Socket.RemoteEndPoint).Port;
                     _Stream = new NetworkStream(_Socket);
+
+                    if (_RemoteIP.ToLower().StartsWith("::ffff:"))
+                    {
+                        _RemoteIP = _RemoteIP.Substring(7); // Trim leading ::ffff:
+                    }
                 }
                 return _Socket.Connected;
             }
@@ -634,6 +637,36 @@ namespace RandM.RMLib
             {
                 RMLog.Exception(ex, "Exception in TcpConnection::Open()");
                 return false;
+            }
+        }
+
+        // Modified version of https://github.com/statianzo/Fleck/blob/master/src/Fleck/WebSocketServer.cs
+        private IPAddress ParseIPAddress(string ipAddress)
+        {
+            string[] BindToAll = new string[]
+            {
+                "",
+                "0.0.0.0",
+                "::",
+                "[::]",
+                "0000:0000:0000:0000:0000:0000:0000:0000",
+                "[0000:0000:0000:0000:0000:0000:0000:0000]"
+            };
+
+            if (BindToAll.Contains(ipAddress))
+            {
+                return IPAddress.IPv6Any;
+            }
+            else
+            {
+                try
+                {
+                    return IPAddress.Parse(ipAddress);
+                }
+                catch (Exception ex)
+                {
+                    throw new FormatException("Failed to parse the IP address. Please make sure you specify a valid IP address. Use 0.0.0.0 or [::] to listen on all interfaces.", ex);
+                }
             }
         }
 
