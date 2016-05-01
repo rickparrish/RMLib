@@ -21,6 +21,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Mail;
 using System.Net.NetworkInformation;
@@ -333,6 +334,97 @@ namespace RandM.RMLib
             {
                 throw new ArgumentOutOfRangeException("ipAddress");
             }
+        }
+
+        static public void ParseHostPort(string input, ref string hostname, ref int port)
+        {
+            int ColonCount = input.Count(x => x == ':');
+            if (ColonCount == 0)
+            {
+                // No colons means either hostname or IPv4 address without a port
+                hostname = input;
+            }
+            else if (ColonCount == 1)
+            {
+                // 1 colon means either hostname:port or IPv4:port
+                hostname = input.Split(':')[0];
+                port = int.Parse(input.Split(':')[1]);
+            }
+            else
+            {
+                // More than one colon means IPv6 address, possibly with a port
+                if (input.Contains("[") && input.Contains("]"))
+                {
+                    // Having [] means we could have a [IPv6]:port
+                    if (input.LastIndexOf(']') < input.LastIndexOf(':'))
+                    {
+                        // [IPv6]:port
+                        hostname = input.Substring(0, input.LastIndexOf(':'));
+                        port = int.Parse(input.Substring(input.LastIndexOf(':') + 1));
+                    }
+                    else
+                    {
+                        // [IPv6]
+                        hostname = input;
+                    }
+                }
+                else
+                {
+                    // No [] means we only have an IPv6 without a port (or we do have a port, but that's not valid because you need to use [] to add a port)
+                    hostname = input;
+                }
+            }
+        }
+
+        static public void ParseHostPortTest()
+        {
+            string input = "127.0.0.1";
+            string hostname = "";
+            int port = 0;
+            WebUtils.ParseHostPort(input, ref hostname, ref port);
+            Console.WriteLine($"input={input}, hostname={hostname}, port={port}");
+
+            input = "127.0.0.1:23";
+            hostname = "";
+            port = 0;
+            WebUtils.ParseHostPort(input, ref hostname, ref port);
+            Console.WriteLine($"input={input}, hostname={hostname}, port={port}");
+
+            input = "[0:1:2:3::4]";
+            hostname = "";
+            port = 0;
+            WebUtils.ParseHostPort(input, ref hostname, ref port);
+            Console.WriteLine($"input={input}, hostname={hostname}, port={port}");
+
+            input = "[0:1:2:3::4]:23";
+            hostname = "";
+            port = 0;
+            WebUtils.ParseHostPort(input, ref hostname, ref port);
+            Console.WriteLine($"input={input}, hostname={hostname}, port={port}");
+
+            input = "host";
+            hostname = "";
+            port = 0;
+            WebUtils.ParseHostPort(input, ref hostname, ref port);
+            Console.WriteLine($"input={input}, hostname={hostname}, port={port}");
+
+            input = "host:23";
+            hostname = "";
+            port = 0;
+            WebUtils.ParseHostPort(input, ref hostname, ref port);
+            Console.WriteLine($"input={input}, hostname={hostname}, port={port}");
+
+            input = "0:1:2:3::4";
+            hostname = "";
+            port = 0;
+            WebUtils.ParseHostPort(input, ref hostname, ref port);
+            Console.WriteLine($"input={input}, hostname={hostname}, port={port}");
+
+            input = "0:1:2:3::4:23";
+            hostname = "";
+            port = 0;
+            WebUtils.ParseHostPort(input, ref hostname, ref port);
+            Console.WriteLine($"input={input}, hostname={hostname}, port={port}");
         }
 
         static public bool Ping(string hostName, int timeout)

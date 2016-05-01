@@ -223,7 +223,8 @@ namespace RandM.RMLib
                 }
                 catch (SocketException sex)
                 {
-                    switch (sex.ErrorCode) {
+                    switch (sex.ErrorCode)
+                    {
                         case 10057: break; // The socket is not connected
                         default: RMLog.Exception(sex, "SocketException in TcpConnection::Close().  ErrorCode=" + sex.ErrorCode.ToString()); break;
                     }
@@ -248,9 +249,32 @@ namespace RandM.RMLib
 
             try
             {
-                _Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                // Get the ip addresses for the give hostname, and then convert from ipv4 to ipv6 if necessary
+                var IPv6IPAddresses = new List<IPAddress>();
+                foreach (var IPA in Dns.GetHostAddresses(hostName))
+                {
+                    if (IPA.AddressFamily == AddressFamily.InterNetwork)
+                    {
+                        IPv6IPAddresses.Add(IPAddress.Parse("::ffff:" + IPA.ToString()));
+                    }
+                    else
+                    {
+                        IPv6IPAddresses.Add(IPA);
+                    }
+                }
+
+                _Socket = new Socket(AddressFamily.InterNetworkV6, SocketType.Stream, ProtocolType.Tcp);
+                if (!ProcessUtils.IsRunningOnMono) // From: https://github.com/statianzo/Fleck/blob/master/src/Fleck/WebSocketServer.cs
+                {
+#if __MonoCS__
+#else
+                    // Windows default to IPv6Only=true, so we call this to allow connections to both IPv4 and IPv6
+                    // Mono will throw an exception, but that's OK because it defaults to allowing both IPv4 and IPv6
+                    _Socket.SetSocketOption(SocketOptionLevel.IPv6, (SocketOptionName)27, false); // 27 = SocketOptionName.IPv6Only
+#endif
+                }
                 _Socket.Blocking = true;
-                _Socket.Connect(hostName, port);
+                _Socket.Connect(IPv6IPAddresses.ToArray(), port);
                 if (_Socket.Connected)
                 {
                     _LocalIP = ((IPEndPoint)_Socket.LocalEndPoint).Address.ToString();
@@ -262,6 +286,10 @@ namespace RandM.RMLib
                     if (_RemoteIP.ToLower().StartsWith("::ffff:"))
                     {
                         _RemoteIP = _RemoteIP.Substring(7); // Trim leading ::ffff:
+                    }
+                    else
+                    {
+                        _RemoteIP = "[" + _RemoteIP + "]"; // Wrap IPv6 in []
                     }
                 }
                 return _Socket.Connected;
@@ -458,7 +486,15 @@ namespace RandM.RMLib
             {
                 IPAddress IPA = ParseIPAddress(ipAddress);
                 _Socket = new Socket(IPA.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-                _Socket.SetSocketOption(SocketOptionLevel.IPv6, (SocketOptionName)27, false); // 27 = SocketOptionName.IPv6Only
+                if (!ProcessUtils.IsRunningOnMono) // // From: https://github.com/statianzo/Fleck/blob/master/src/Fleck/WebSocketServer.cs
+                {
+#if __MonoCS__
+#else
+                    // Windows default to IPv6Only=true, so we call this to allow connections to both IPv4 and IPv6
+                    // Mono will throw an exception, but that's OK because it defaults to allowing both IPv4 and IPv6
+                    _Socket.SetSocketOption(SocketOptionLevel.IPv6, (SocketOptionName)27, false); // 27 = SocketOptionName.IPv6Only
+#endif
+                }
                 _Socket.Blocking = true;
                 _Socket.Bind(new IPEndPoint(IPA, port));
                 _Socket.Listen(5);
@@ -546,36 +582,38 @@ namespace RandM.RMLib
             }
             else
             {
-                try
-                {
-                    SocketInformation SI = new SocketInformation();
-                    SI.Options = SocketInformationOptions.Connected;
-                    SI.ProtocolInformation = new byte[24];
+                RMLog.Error("MONO cannot open an existing socket handle");
+                return false;
+                //try
+                //{
+                //    SocketInformation SI = new SocketInformation();
+                //    SI.Options = SocketInformationOptions.Connected;
+                //    SI.ProtocolInformation = new byte[24];
 
-                    // From Mono's Socket.cs DuplicateAndClose() SI.ProtocolInformation = Mono.DataConverter.Pack("iiiil", (int)address_family, (int)socket_type, (int)protocol_type, isbound ? 1 : 0, (long)socket);
-                    byte[] B1 = BitConverter.GetBytes((int)AddressFamily.InterNetwork);
-                    byte[] B2 = BitConverter.GetBytes((int)SocketType.Stream);
-                    byte[] B3 = BitConverter.GetBytes((int)ProtocolType.Tcp);
-                    byte[] B4 = BitConverter.GetBytes((int)1);
-                    byte[] B5 = BitConverter.GetBytes((long)ASocketHandle);
-                    Array.Copy(B1, 0, SI.ProtocolInformation, 0, B1.Length);
-                    Array.Copy(B2, 0, SI.ProtocolInformation, 4, B2.Length);
-                    Array.Copy(B3, 0, SI.ProtocolInformation, 8, B3.Length);
-                    Array.Copy(B4, 0, SI.ProtocolInformation, 12, B4.Length);
-                    Array.Copy(B5, 0, SI.ProtocolInformation, 16, B5.Length);
+                //    // From Mono's Socket.cs DuplicateAndClose() SI.ProtocolInformation = Mono.DataConverter.Pack("iiiil", (int)address_family, (int)socket_type, (int)protocol_type, isbound ? 1 : 0, (long)socket);
+                //    byte[] B1 = BitConverter.GetBytes((int)AddressFamily.InterNetwork);
+                //    byte[] B2 = BitConverter.GetBytes((int)SocketType.Stream);
+                //    byte[] B3 = BitConverter.GetBytes((int)ProtocolType.Tcp);
+                //    byte[] B4 = BitConverter.GetBytes((int)1);
+                //    byte[] B5 = BitConverter.GetBytes((long)ASocketHandle);
+                //    Array.Copy(B1, 0, SI.ProtocolInformation, 0, B1.Length);
+                //    Array.Copy(B2, 0, SI.ProtocolInformation, 4, B2.Length);
+                //    Array.Copy(B3, 0, SI.ProtocolInformation, 8, B3.Length);
+                //    Array.Copy(B4, 0, SI.ProtocolInformation, 12, B4.Length);
+                //    Array.Copy(B5, 0, SI.ProtocolInformation, 16, B5.Length);
 
-                    return Open(new Socket(SI));
-                }
-                catch (SocketException sex)
-                {
-                    RMLog.Exception(sex, "SocketException in TcpConnection::Open().  ErrorCode=" + sex.ErrorCode.ToString());
-                    return false;
-                }
-                catch (Exception ex)
-                {
-                    RMLog.Exception(ex, "Exception in TcpConnection::Open()");
-                    return false;
-                }
+                //    return Open(new Socket(SI));
+                //}
+                //catch (SocketException sex)
+                //{
+                //    RMLog.Exception(sex, "SocketException in TcpConnection::Open().  ErrorCode=" + sex.ErrorCode.ToString());
+                //    return false;
+                //}
+                //catch (Exception ex)
+                //{
+                //    RMLog.Exception(ex, "Exception in TcpConnection::Open()");
+                //    return false;
+                //}
             }
         }
 
@@ -624,6 +662,10 @@ namespace RandM.RMLib
                     if (_RemoteIP.ToLower().StartsWith("::ffff:"))
                     {
                         _RemoteIP = _RemoteIP.Substring(7); // Trim leading ::ffff:
+                    }
+                    else
+                    {
+                        _RemoteIP = "[" + _RemoteIP + "]"; // Wrap IPv6 in []
                     }
                 }
                 return _Socket.Connected;

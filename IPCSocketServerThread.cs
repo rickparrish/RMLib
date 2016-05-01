@@ -67,7 +67,7 @@ namespace RandM.RMLib
                             {
                                 _ClientConnection.WriteLn("OK!");
 
-                                RaiseMessageEvent("Control server accepted a client connection from " + _ClientConnection.GetRemoteIP() + "," + _ClientConnection.GetRemotePort());
+                                RaiseMessageEvent("Control server accepted a client connection from " + _ClientConnection.GetRemoteIP() + ":" + _ClientConnection.GetRemotePort());
 
                                 _Buffer.Length = 0;
                                 while ((!_Stop) && (_ClientConnection.Connected))

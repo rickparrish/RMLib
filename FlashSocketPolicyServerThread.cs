@@ -89,7 +89,7 @@ namespace RandM.RMLib
                             if (Request.ToLower().Replace(" ", "") == "<policy-file-request/>")
                             {
                                 ConnectionAcceptedEventArgs.Raise(this, ConnectionAcceptedEvent, _Address, _Port, NewConnection.GetRemoteIP(), NewConnection.GetRemotePort());
-                                RaiseMessageEvent("Answered policy file request from " + NewConnection.GetRemoteIP() + "," + NewConnection.GetRemotePort().ToString());
+                                RaiseMessageEvent("Answered policy file request from " + NewConnection.GetRemoteIP() + ":" + NewConnection.GetRemotePort().ToString());
                                 
                                 NewConnection.WriteLn("<?xml version=\"1.0\"?>");
                                 NewConnection.WriteLn("<cross-domain-policy>");
@@ -100,7 +100,7 @@ namespace RandM.RMLib
                             }
                             else
                             {
-                                RaiseErrorMessageEvent("Invalid policy file request from " + NewConnection.GetRemoteIP() + "," + NewConnection.GetRemotePort().ToString());
+                                RaiseErrorMessageEvent("Invalid policy file request from " + NewConnection.GetRemoteIP() + ":" + NewConnection.GetRemotePort().ToString());
                             }
                             NewConnection.Close();
                         }
@@ -110,7 +110,7 @@ namespace RandM.RMLib
             }
             else
             {
-                RaiseErrorMessageEvent("Flash Socket Policy Thread: Unable to listen on " + _Address + "," + _Port);
+                RaiseErrorMessageEvent("Flash Socket Policy Thread: Unable to listen on " + _Address + ":" + _Port);
                 RaiseBindFailedEvent();
             }
         }
