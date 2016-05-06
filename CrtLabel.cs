@@ -19,7 +19,7 @@
 */
 namespace RandM.RMLib
 {
-    public class CrtLabel : CrtControl
+    public sealed class CrtLabel : CrtControl
     {
         public CrtLabel(CrtControl parent, int column, int row, int width) : this(parent, column, row, width, "", CrtAlignment.Left, Crt.LightGray, Crt.Black) { }
         public CrtLabel(CrtControl parent, int column, int row, int width, string text) : this(parent, column, row, width, text, CrtAlignment.Left, Crt.LightGray, Crt.Black) { }

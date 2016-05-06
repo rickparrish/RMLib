@@ -52,7 +52,7 @@ namespace RandM.RMLib
                 return true;
             }
         }
-        
+
         public virtual void Pause()
         {
             _Paused = !_Paused;
@@ -88,38 +88,37 @@ namespace RandM.RMLib
         }
 
         #region IDisposable Support
-        private bool disposedValue = false; // To detect redundant calls
+        protected bool _Disposed = false; // To detect redundant calls
 
-        protected virtual void Dispose(bool disposing)
+        ~RMThread()
         {
-            if (!disposedValue)
-            {
-                if (disposing)
-                {
-                    // TODO: dispose managed state (managed objects).
-                    if (_StopEvent != null) _StopEvent.Close();
-                }
-
-                // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
-                // TODO: set large fields to null.
-
-                disposedValue = true;
-            }
+            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            Dispose(false);
         }
-
-        // TODO: override a finalizer only if Dispose(bool disposing) above has code to free unmanaged resources.
-        // ~RMThread() {
-        //   // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
-        //   Dispose(false);
-        // }
 
         // This code added to correctly implement the disposable pattern.
         public void Dispose()
         {
-            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            // Do not change this code. Put cleanup code in Dispose(bool disposing).
             Dispose(true);
-            // TODO: uncomment the following line if the finalizer is overridden above.
-            // GC.SuppressFinalize(this);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_Disposed)
+            {
+                if (disposing)
+                {
+                    // dispose managed state (managed objects).
+                    if (_StopEvent != null) _StopEvent.Close();
+                }
+
+                // free unmanaged resources (unmanaged objects)
+                // set large fields to null.
+
+                _Disposed = true;
+            }
         }
         #endregion
     }

@@ -64,6 +64,7 @@ namespace RandM.RMLib
         public bool StripLF { get; set; }
         public bool StripNull { get; set; }
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2214:DoNotCallOverridableMethodsInConstructors")]
         public TcpConnection()
         {
             // Reset the socket
@@ -250,31 +251,40 @@ namespace RandM.RMLib
             try
             {
                 // Get the ip addresses for the give hostname, and then convert from ipv4 to ipv6 if necessary
-                var IPv6IPAddresses = new List<IPAddress>();
-                foreach (var IPA in Dns.GetHostAddresses(hostName))
+                var HostAddresses = new List<IPAddress>();
+                if (OSUtils.IsWinXP)
                 {
-                    if (IPA.AddressFamily == AddressFamily.InterNetwork)
+                    HostAddresses.AddRange(Dns.GetHostAddresses(hostName));
+                    _Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                }
+                else
+                {
+                    foreach (var IPA in Dns.GetHostAddresses(hostName))
                     {
-                        IPv6IPAddresses.Add(IPAddress.Parse("::ffff:" + IPA.ToString()));
+                        if (IPA.AddressFamily == AddressFamily.InterNetwork)
+                        {
+                            HostAddresses.Add(IPAddress.Parse("::ffff:" + IPA.ToString()));
+                        }
+                        else
+                        {
+                            HostAddresses.Add(IPA);
+                        }
                     }
-                    else
+
+                    _Socket = new Socket(AddressFamily.InterNetworkV6, SocketType.Stream, ProtocolType.Tcp);
+                    if (!ProcessUtils.IsRunningOnMono) // From: https://github.com/statianzo/Fleck/blob/master/src/Fleck/WebSocketServer.cs
                     {
-                        IPv6IPAddresses.Add(IPA);
+#if __MonoCS__
+#else
+                        // Windows default to IPv6Only=true, so we call this to allow connections to both IPv4 and IPv6
+                        // Mono will throw an exception, but that's OK because it defaults to allowing both IPv4 and IPv6
+                        _Socket.SetSocketOption(SocketOptionLevel.IPv6, (SocketOptionName)27, false); // 27 = SocketOptionName.IPv6Only
+#endif
                     }
                 }
 
-                _Socket = new Socket(AddressFamily.InterNetworkV6, SocketType.Stream, ProtocolType.Tcp);
-                if (!ProcessUtils.IsRunningOnMono) // From: https://github.com/statianzo/Fleck/blob/master/src/Fleck/WebSocketServer.cs
-                {
-#if __MonoCS__
-#else
-                    // Windows default to IPv6Only=true, so we call this to allow connections to both IPv4 and IPv6
-                    // Mono will throw an exception, but that's OK because it defaults to allowing both IPv4 and IPv6
-                    _Socket.SetSocketOption(SocketOptionLevel.IPv6, (SocketOptionName)27, false); // 27 = SocketOptionName.IPv6Only
-#endif
-                }
                 _Socket.Blocking = true;
-                _Socket.Connect(IPv6IPAddresses.ToArray(), port);
+                _Socket.Connect(HostAddresses.ToArray(), port);
                 if (_Socket.Connected)
                 {
                     _LocalIP = ((IPEndPoint)_Socket.LocalEndPoint).Address.ToString();
@@ -287,7 +297,7 @@ namespace RandM.RMLib
                     {
                         _RemoteIP = _RemoteIP.Substring(7); // Trim leading ::ffff:
                     }
-                    else
+                    else if (((IPEndPoint)_Socket.RemoteEndPoint).Address.AddressFamily == AddressFamily.InterNetworkV6)
                     {
                         _RemoteIP = "[" + _RemoteIP + "]"; // Wrap IPv6 in []
                     }
@@ -486,7 +496,7 @@ namespace RandM.RMLib
             {
                 IPAddress IPA = ParseIPAddress(ipAddress);
                 _Socket = new Socket(IPA.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-                if (!ProcessUtils.IsRunningOnMono) // // From: https://github.com/statianzo/Fleck/blob/master/src/Fleck/WebSocketServer.cs
+                if (!ProcessUtils.IsRunningOnMono && !OSUtils.IsWinXP) // From: https://github.com/statianzo/Fleck/blob/master/src/Fleck/WebSocketServer.cs
                 {
 #if __MonoCS__
 #else
@@ -663,7 +673,7 @@ namespace RandM.RMLib
                     {
                         _RemoteIP = _RemoteIP.Substring(7); // Trim leading ::ffff:
                     }
-                    else
+                    else if (((IPEndPoint)_Socket.RemoteEndPoint).Address.AddressFamily == AddressFamily.InterNetworkV6)
                     {
                         _RemoteIP = "[" + _RemoteIP + "]"; // Wrap IPv6 in []
                     }
@@ -697,7 +707,8 @@ namespace RandM.RMLib
 
             if (BindToAll.Contains(ipAddress))
             {
-                return IPAddress.IPv6Any;
+                // TODOX This should really depend on the ipAddress that was passed in for XP
+                return OSUtils.IsWinXP ? IPAddress.Any : IPAddress.IPv6Any;
             }
             else
             {

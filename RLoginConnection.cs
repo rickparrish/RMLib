@@ -49,6 +49,8 @@ namespace RandM.RMLib
 
         public string ClientUserName { get; private set; }
 
+        // NB: The base class constructor calls InitSocket(), which means this method will run before this classes constructor, so
+        //     everything accessed here needs to be initialized already (ie can't rely on the constructor to initialize it)
         protected override void InitSocket()
         {
             base.InitSocket();

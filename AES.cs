@@ -22,6 +22,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Security.Cryptography;
 using System.IO;
+using System.Diagnostics.CodeAnalysis;
 
 namespace RandM.RMLib
 {
@@ -37,6 +38,7 @@ namespace RandM.RMLib
         /// <param name="password">Password to encrypt with</param>
         /// <param name="salt">Salt to encrypt with</param>
         /// <returns>An encrypted string</returns>
+        [SuppressMessage("Microsoft.Usage", "CA2202:Do not dispose objects multiple times")]
         public static string Encrypt(string plaintext, string password, string salt)
         {
             string Result = "";
@@ -71,6 +73,7 @@ namespace RandM.RMLib
         /// <param name="password">Password to decrypt with</param>
         /// <param name="salt">Salt to decrypt with</param>
         /// <returns>A decrypted string</returns>
+        [SuppressMessage("Microsoft.Usage", "CA2202:Do not dispose objects multiple times")]
         public static string Decrypt(string cipherText, string password, string salt)
         {
             string Result = "";

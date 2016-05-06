@@ -27,7 +27,6 @@ namespace RandM.RMLib
         private string _Address;
         private string _AllowedPorts;
         private TcpConnection _Connection;
-        private bool _Disposed = false;
         private int _Port;
 
         public event EventHandler BindFailedEvent = null;
@@ -44,29 +43,22 @@ namespace RandM.RMLib
             _AllowedPorts = allowedPorts;
         }
 
-        protected override void Dispose(bool ADisposing)
+        protected override void Dispose(bool disposing)
         {
-            // Check to see if Dispose has already been called.
             if (!_Disposed)
             {
-                // If disposing equals true, dispose all managed
-                // and unmanaged resources.
-                if (ADisposing)
+                if (disposing)
                 {
-                    // Dispose managed resources.
+                    // dispose managed state (managed objects).
                     _Connection.Dispose();
                 }
 
-                // Call the appropriate methods to clean up
-                // unmanaged resources here.
-                // If disposing is false,
-                // only the following code is executed.
+                // free unmanaged resources (unmanaged objects)
+                // set large fields to null.
 
-                // Note disposing has been done.
-                _Disposed = true;
+                // Call the base dispose
+                base.Dispose(disposing);
             }
-
-            base.Dispose(ADisposing);
         }
 
         protected override void Execute()

@@ -30,6 +30,8 @@ namespace RandM.RMLib
         private TelnetOption _SubnegotiationOption = TelnetOption.None;
         private StringBuilder _SubnegotiationData = new StringBuilder();
 
+        // NB: The base class constructor calls InitSocket(), which means this method will run before this classes constructor, so
+        //     everything accessed here needs to be initialized already (ie can't rely on the constructor to initialize it)
         protected override void InitSocket()
         {
             base.InitSocket();

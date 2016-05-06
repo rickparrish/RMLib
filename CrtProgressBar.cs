@@ -22,7 +22,7 @@ using System.Globalization;
 
 namespace RandM.RMLib
 {
-    public class CrtProgressBar : CrtControl
+    public sealed class CrtProgressBar : CrtControl
     {
         private int _LastBarWidth = 9999;
         private DateTime _LastMarqueeUpdate = DateTime.Now;

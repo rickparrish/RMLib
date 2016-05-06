@@ -40,7 +40,7 @@ namespace RandM.RMLib
         static public event EventHandler ESC5nEvent = null;
         static public event EventHandler ESC6nEvent = null;
         static public event EventHandler ESC255nEvent = null;
-        static public event EventHandler ESCQEvent = null;
+        static public event EventHandler<ESCQEventArgs> ESCQEvent = null;
 
         static private int[] ANSI_COLORS = { 0, 4, 2, 6, 1, 5, 3, 7 };
         static private char ESC = '\x1B';
@@ -236,7 +236,7 @@ namespace RandM.RMLib
                         X = _AnsiParams.Dequeue();
                         Y = _AnsiParams.Dequeue();
                         Z = _AnsiParams.Dequeue();
-                        RaiseESCQEvent(); // TODO Should pass parameters to function
+                        RaiseESCQEvent(X, Y, Z);
                         break;
                     case 'S': // CSI n S - Scroll whole page up by n (default 1) lines. New lines are added at the bottom. (not ANSI.SYS)
                         Y = Math.Max(1, _AnsiParams.Dequeue());
@@ -391,13 +391,9 @@ namespace RandM.RMLib
             }
         }
 
-        private static void RaiseESCQEvent()
+        private static void RaiseESCQEvent(int codePage, int width, int height)
         {
-            EventHandler Handler = ESCQEvent;
-            if (Handler != null)
-            {
-                Handler(null, EventArgs.Empty);
-            }
+            ESCQEvent?.Invoke(null, new ESCQEventArgs(codePage, width, height));
         }
 
         static public string TextAttr(int attribute)
@@ -491,26 +487,40 @@ namespace RandM.RMLib
                 Crt.Write(Buffer);
             }
         }
-    }
-
-    /// <summary>
-    /// The possible states the ANSI parser may find itself in
-    /// </summary>
-    public enum AnsiParserState
-    {
-        /// <summary>
-        /// The default data state
-        /// </summary>
-        None,
 
         /// <summary>
-        /// The last received character was an ESC
+        /// The possible states the ANSI parser may find itself in
         /// </summary>
-        Escape,
+        public enum AnsiParserState
+        {
+            /// <summary>
+            /// The default data state
+            /// </summary>
+            None,
 
-        /// <summary>
-        /// The last received character was a [
-        /// </summary>
-        Bracket
+            /// <summary>
+            /// The last received character was an ESC
+            /// </summary>
+            Escape,
+
+            /// <summary>
+            /// The last received character was a [
+            /// </summary>
+            Bracket
+        }
+
+        public class ESCQEventArgs : EventArgs
+        {
+            private int _CodePage;
+            private int _Height;
+            private int _Width;
+
+            public ESCQEventArgs(int codePage, int width, int height)
+            {
+                this._CodePage = codePage;
+                this._Width = width;
+                this._Height = height;
+            }
+        }
     }
 }

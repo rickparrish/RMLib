@@ -144,6 +144,7 @@ namespace RandM.RMLib
             }
         }
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1065:DoNotRaiseExceptionsInUnexpectedLocations")]
         public bool HasExited
         {
             get

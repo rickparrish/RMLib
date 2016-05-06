@@ -18,6 +18,7 @@
   along with RMLib.  If not, see <http://www.gnu.org/licenses/>.
 */
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -217,6 +218,7 @@ namespace RandM.RMLib
         /// </summary>
         /// <returns>A base64 encoded string of the encrypted version of the current SecureString</returns>
         /// <remarks>Based on the code from Sly Gryphon's comment at http://weblogs.asp.net/pglavich/archive/2006/10/29/Secure-TextBox-Updated.aspx </remarks>
+        [SuppressMessage("Microsoft.Usage", "CA2202:Do not dispose objects multiple times")]
         public string GetEncryptedString(RMSecureString password)
         {
             string Result = "";
@@ -517,6 +519,7 @@ namespace RandM.RMLib
             }
         }
 
+        [SuppressMessage("Microsoft.Usage", "CA2202:Do not dispose objects multiple times")]
         public void LoadFromEncryptedString(string encryptedString, RMSecureString password)
         {
             Clear();

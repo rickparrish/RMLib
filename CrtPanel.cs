@@ -21,7 +21,7 @@ using System.Globalization;
 
 namespace RandM.RMLib
 {
-    public class CrtPanel : CrtControl 
+    public sealed class CrtPanel : CrtControl 
     {
 
         public CrtPanel(CrtControl parent, int column, int row, int width, int height) : this(parent, column, row, width, height, BorderStyle.Single, Crt.White, Crt.Blue) { }

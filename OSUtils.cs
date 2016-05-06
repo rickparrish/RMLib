@@ -317,5 +317,10 @@ namespace RandM.RMLib
         {
             get { return Environment.OSVersion.Platform == PlatformID.Win32NT; }
         }
+
+        static public bool IsWinXP
+        {
+            get { return IsWinNT && (Environment.OSVersion.Version.Major == 5) && (Environment.OSVersion.Version.Minor == 1); }
+        }
     }
 }

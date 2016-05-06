@@ -173,6 +173,7 @@ namespace RandM.RMLib
 
         // ExecuteNonQuery executes a query and returns the number of rows affected
         // Useful for INSERT/UPDATE/DELETE operations
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Security", "CA2100:Review SQL queries for security vulnerabilities")]
         public int ExecuteNonQuery(string sqlText)
         {
             using (SQLiteCommand Cmd = new SQLiteCommand(sqlText, _Connection, _Transaction))
@@ -189,6 +190,7 @@ namespace RandM.RMLib
 
         // ExecuteReader executes a query and returns an SQLDataReader object
         // Useful for SELECT operations returning multiple columns/rows
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Security", "CA2100:Review SQL queries for security vulnerabilities")]
         public bool ExecuteReader(string sqlText)
         {
             using (SQLiteCommand Cmd = new SQLiteCommand(sqlText, _Connection, _Transaction))
@@ -207,6 +209,7 @@ namespace RandM.RMLib
         // ExecuteScalar executes a query and returns a plain old Object
         // Useful for SELECT operations returning 1 row with 1 column
         // Don't forget to Convert.ToWhatever the return value
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Security", "CA2100:Review SQL queries for security vulnerabilities")]
         public object ExecuteScalar(string sqlText)
         {
             using (SQLiteCommand Cmd = new SQLiteCommand(sqlText, _Connection, _Transaction))

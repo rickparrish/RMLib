@@ -836,7 +836,7 @@ namespace RandM.RMLib
                     }
                     else
                     {
-                        // TODOX Maybe support other drop file formats for Linux, and assume local mode when they're used (ie DOOR.SYS, DORINFO.DEF)
+                        // TODOZ Maybe support other drop file formats for Linux, and assume local mode when they're used (ie DOOR.SYS, DORINFO.DEF)
                         ClrScr();
                         WriteLn();
                         WriteLn("  Drop File '" + Path.GetFileName(DropFile) + "' Not Supported");
