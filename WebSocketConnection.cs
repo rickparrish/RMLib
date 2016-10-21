@@ -491,13 +491,16 @@ namespace RandM.RMLib
                 }
 
                 // Keep reading header data until we get all the data we want
+                DateTime LoopStart = DateTime.Now;
                 while (true)
                 {
                     // Read another line, and abort if we don't get one within 5 seconds
                     string InLine = ReadLn(new string[] { "\r\n", "\0" }, false, '\0', 5000).Trim();
-                    if (ReadTimedOut)
-                    {
-                        RMLog.Error("Timeout exceeded while waiting for complete handshake");
+                    if (ReadTimedOut) {
+                        RMLog.Error("Timeout exceeded while waiting for next handshake line");
+                        return false;
+                    } else if (DateTime.Now.Subtract(LoopStart).TotalSeconds > 30.0) {
+                        RMLog.Error("Timeout exceeded while waiting for handshake to complete");
                         return false;
                     }
 
@@ -672,8 +675,9 @@ namespace RandM.RMLib
         private bool ShakeHandsRFC6455()
         {
             // Ensure we have all the data we need
-            if ((_Header.ContainsKey("Key")) && (_Header.ContainsKey("Host")) && (_Header.ContainsKey("Origin")) && (_Header.ContainsKey("Path")))
-            {
+            // TODOX Firefox (v49, maybe others) is not sending an Origin header, which breaks things
+            // TODOX if ((_Header.ContainsKey("Key")) && (_Header.ContainsKey("Host")) && (_Header.ContainsKey("Origin")) && (_Header.ContainsKey("Path")))
+            if ((_Header.ContainsKey("Key")) && (_Header.ContainsKey("Host")) && (_Header.ContainsKey("Path"))) {
                 string AcceptGUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
                 // Combine Key and GUID

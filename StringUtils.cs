@@ -317,10 +317,10 @@ namespace RandM.RMLib
             return PadLeft(TS.Minutes.ToString(), '0', 2) + ":" + PadLeft(TS.Seconds.ToString(), '0', 2);
         }
 
-        static public int StrToIntDef(string text, int defaultValue)
+        static public long StrToIntDef(string text, long defaultValue)
         {
-            int Result = 0;
-            return (int.TryParse(text, out Result)) ? Result : defaultValue;
+            long Result = 0;
+            return (long.TryParse(text.Replace(",", ""), out Result)) ? Result : defaultValue; // TODOX Some cultures use . as thousands separator
         }
     }
 }
