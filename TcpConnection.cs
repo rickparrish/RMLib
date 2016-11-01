@@ -252,7 +252,7 @@ namespace RandM.RMLib
             {
                 // Get the ip addresses for the give hostname, and then convert from ipv4 to ipv6 if necessary
                 var HostAddresses = new List<IPAddress>();
-                if (OSUtils.IsWinXP)
+                if (OSUtils.IsWinXPOr2003)
                 {
                     HostAddresses.AddRange(Dns.GetHostAddresses(hostName));
                     _Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
@@ -272,6 +272,7 @@ namespace RandM.RMLib
                     }
 
                     _Socket = new Socket(AddressFamily.InterNetworkV6, SocketType.Stream, ProtocolType.Tcp);
+                    // Only do the Mono check here because the XP check is done above
                     if (!ProcessUtils.IsRunningOnMono) // From: https://github.com/statianzo/Fleck/blob/master/src/Fleck/WebSocketServer.cs
                     {
 #if __MonoCS__
@@ -496,7 +497,7 @@ namespace RandM.RMLib
             {
                 IPAddress IPA = ParseIPAddress(ipAddress);
                 _Socket = new Socket(IPA.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-                if (!ProcessUtils.IsRunningOnMono && !OSUtils.IsWinXP) // From: https://github.com/statianzo/Fleck/blob/master/src/Fleck/WebSocketServer.cs
+                if (!ProcessUtils.IsRunningOnMono && !OSUtils.IsWinXPOr2003) // From: https://github.com/statianzo/Fleck/blob/master/src/Fleck/WebSocketServer.cs
                 {
 #if __MonoCS__
 #else
@@ -707,8 +708,8 @@ namespace RandM.RMLib
 
             if (BindToAll.Contains(ipAddress))
             {
-                // TODOX This should really depend on the ipAddress that was passed in for XP
-                return OSUtils.IsWinXP ? IPAddress.Any : IPAddress.IPv6Any;
+                // We want to bind to all addresses, so return IPAddress.Any or IPv6Any based on the OS we're running on
+                return OSUtils.IsWinXPOr2003 ? IPAddress.Any : IPAddress.IPv6Any;
             }
             else
             {

@@ -297,6 +297,10 @@ namespace RandM.RMLib
             get { return Environment.OSVersion.Platform == PlatformID.Unix; }
         }
 
+        static public bool IsWin2003 {
+            get { return IsWinNT && (Environment.OSVersion.Version.Major == 5) && (Environment.OSVersion.Version.Minor == 2); }
+        }
+
         static public bool IsWin9x
         {
             get { return Environment.OSVersion.Platform == PlatformID.Win32Windows; }
@@ -321,6 +325,10 @@ namespace RandM.RMLib
         static public bool IsWinXP
         {
             get { return IsWinNT && (Environment.OSVersion.Version.Major == 5) && (Environment.OSVersion.Version.Minor == 1); }
+        }
+
+        static public bool IsWinXPOr2003 {
+            get { return IsWinXP || IsWin2003; }
         }
     }
 }
