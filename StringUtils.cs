@@ -1,20 +1,20 @@
 /*
   RMLib: Nonvisual support classes used by multiple R&M Software programs
-  Copyright (C) 2008-2014  Rick Parrish, R&M Software
+  Copyright (C) Rick Parrish, R&M Software
 
   This file is part of RMLib.
 
   RMLib is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
+  it under the terms of the GNU Lesser General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   any later version.
 
   RMLib is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+  GNU Lesser General Public License for more details.
 
-  You should have received a copy of the GNU General Public License
+  You should have received a copy of the GNU Lesser General Public License
   along with RMLib.  If not, see <http://www.gnu.org/licenses/>.
 */
 using System;
@@ -28,11 +28,11 @@ using System.Net;
 
 namespace RandM.RMLib
 {
-    static public class StringUtils
+    public static class StringUtils
     {
-        static private Random _R = new Random();
+        private static Random _R = new Random();
 
-        static public string BytesToStr(long bytes)
+        public static string BytesToStr(long bytes)
         {
             const double KILOBYTE = 1024.0;
             const double MEGABYTE = 1048576.0;
@@ -75,12 +75,12 @@ namespace RandM.RMLib
         /// </summary>
         /// <param name="text">The text to perform the conversion on</param>
         /// <returns>The text with CRLF's replaced with <br /></returns>
-        static public string CRLFtoBR(string text)
+        public static string CRLFtoBR(string text)
         {
             return text.Replace("\r\n", "\r").Replace("\n", "\r").Replace("\r", "\r\n").Replace("\r\n", "<br />");
         }
 
-        static public string ExtractShortPathName(string longPathName)
+        public static string ExtractShortPathName(string longPathName)
         {
             if (OSUtils.IsWindows)
             {
@@ -94,7 +94,7 @@ namespace RandM.RMLib
             }
         }
 
-        static public bool IsValidEmailAddress(string emailAddress)
+        public static bool IsValidEmailAddress(string emailAddress)
         {
             try
             {
@@ -107,7 +107,7 @@ namespace RandM.RMLib
             }
         }
 
-        static public bool IsValidFileName(string fileName)
+        public static bool IsValidFileName(string fileName)
         {
             if (fileName.Trim().Length == 0) return false;
 
@@ -123,7 +123,7 @@ namespace RandM.RMLib
             return true;
         }
 
-        static public bool IsValidIPAddress(string ipAddress)
+        public static bool IsValidIPAddress(string ipAddress)
         {
             try
             {
@@ -154,44 +154,44 @@ namespace RandM.RMLib
         /// </summary>
         /// <param name="text">The text to perform the conversion on</param>
         /// <returns>The text with LF's replaced with CR+LF</returns>
-        static public string LFtoCRLF(string text)
+        public static string LFtoCRLF(string text)
         {
             return text.Replace("\r\n", "\r").Replace("\n", "\r").Replace("\r", "\r\n");
         }
 
-        static public string MD5(string text)
+        public static string MD5(string text)
         {
             return MD5("", text, "");
         }
 
-        static public string MD5String(string preSalt, string text)
+        public static string MD5String(string preSalt, string text)
         {
             return MD5(preSalt, text, "");
         }
 
-        static public string MD5(string preSalt, string text, string postSalt)
+        public static string MD5(string preSalt, string text, string postSalt)
         {
             return BitConverter.ToString(MD5Bytes(preSalt, text, postSalt)).Replace("-", "");
         }
 
-        static public byte[] MD5Bytes(string text)
+        public static byte[] MD5Bytes(string text)
         {
             return MD5Bytes("", text, "");
         }
 
-        static public byte[] MD5Bytes(string preSalt, string text)
+        public static byte[] MD5Bytes(string preSalt, string text)
         {
             return MD5Bytes(preSalt, text, "");
         }
 
-        static public byte[] MD5Bytes(string preSalt, string text, string postSalt)
+        public static byte[] MD5Bytes(string preSalt, string text, string postSalt)
         {
             MD5CryptoServiceProvider MCSP = new MD5CryptoServiceProvider();
             byte[] Input = RMEncoding.Ansi.GetBytes(preSalt + text + postSalt);
             return MCSP.ComputeHash(Input);
         }
 
-        static public double MoneyToDouble(string text)
+        public static double MoneyToDouble(string text)
         {
             double Temp;
             if (double.TryParse(text.Replace("$", "").Replace("(", "-").Replace(")", ""), out Temp))
@@ -204,7 +204,7 @@ namespace RandM.RMLib
             }
         }
 
-        static public string PadBoth(string text, char padCharacter, int padToLength)
+        public static string PadBoth(string text, char padCharacter, int padToLength)
         {
             if (text.Length == padToLength)
             {
@@ -222,7 +222,7 @@ namespace RandM.RMLib
             }
         }
 
-        static public string PadLeft(string text, char padCharacter, int padToLength)
+        public static string PadLeft(string text, char padCharacter, int padToLength)
         {
             if (text.Length == padToLength)
             {
@@ -238,7 +238,7 @@ namespace RandM.RMLib
             }
         }
 
-        static public string PadRight(string text, char padCharacter, int padToLength)
+        public static string PadRight(string text, char padCharacter, int padToLength)
         {
             if (text.Length == padToLength)
             {
@@ -254,7 +254,7 @@ namespace RandM.RMLib
             }
         }
 
-        static public string PathCombine(string path1, string path2)
+        public static string PathCombine(string path1, string path2)
         {
             // Check for blank parameters
             if (path1.Length == 0) return path2.TrimStart(Path.DirectorySeparatorChar);
@@ -268,17 +268,17 @@ namespace RandM.RMLib
             return path1 + Path.DirectorySeparatorChar + path2;
         }
 
-        static public string PathCombine(string path1, string path2, string path3)
+        public static string PathCombine(string path1, string path2, string path3)
         {
             return PathCombine(PathCombine(path1, path2), path3);
         }
 
-        static public string PathCombine(string path1, string path2, string path3, string path4)
+        public static string PathCombine(string path1, string path2, string path3, string path4)
         {
             return PathCombine(PathCombine(PathCombine(path1, path2), path3), path4);
         }
 
-        static public double PercentToDouble(string text)
+        public static double PercentToDouble(string text)
         {
             double Temp;
             if (double.TryParse(text.Replace("%", ""), out Temp))
@@ -291,12 +291,12 @@ namespace RandM.RMLib
             }
         }
 
-        static public string RandomString(int length)
+        public static string RandomString(int length)
         {
             return RandomString(length, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
         }
 
-        static public string RandomString(int length, string characters)
+        public static string RandomString(int length, string characters)
         {
             string Result = "";
             for (int i = 0; i < length; i++) {
@@ -305,19 +305,19 @@ namespace RandM.RMLib
             return Result;
         }
 
-        static public string SecToHMS(int seconds)
+        public static string SecToHMS(int seconds)
         {
             TimeSpan TS = TimeSpan.FromSeconds(seconds);
             return PadLeft(TS.Hours.ToString(), '0', 2) + ":" + PadLeft(TS.Minutes.ToString(), '0', 2) + ":" + PadLeft(TS.Seconds.ToString(), '0', 2);
         }
 
-        static public string SecToMS(int seconds)
+        public static string SecToMS(int seconds)
         {
             TimeSpan TS = TimeSpan.FromSeconds(seconds);
             return PadLeft(TS.Minutes.ToString(), '0', 2) + ":" + PadLeft(TS.Seconds.ToString(), '0', 2);
         }
 
-        static public long StrToIntDef(string text, long defaultValue)
+        public static long StrToIntDef(string text, long defaultValue)
         {
             long Result = 0;
             return (long.TryParse(text.Replace(",", ""), out Result)) ? Result : defaultValue; // TODOX Some cultures use . as thousands separator

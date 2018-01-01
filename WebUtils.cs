@@ -1,20 +1,20 @@
 ﻿/*
   RMLib: Nonvisual support classes used by multiple R&M Software programs
-  Copyright (C) 2008-2014  Rick Parrish, R&M Software
+  Copyright (C) Rick Parrish, R&M Software
 
   This file is part of RMLib.
 
   RMLib is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
+  it under the terms of the GNU Lesser General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   any later version.
 
   RMLib is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+  GNU Lesser General Public License for more details.
 
-  You should have received a copy of the GNU General Public License
+  You should have received a copy of the GNU Lesser General Public License
   along with RMLib.  If not, see <http://www.gnu.org/licenses/>.
 */
 using System;
@@ -43,7 +43,7 @@ namespace RandM.RMLib
         Upnp = 4
     }
 
-    static public class WebUtils
+    public static class WebUtils
     {
         public delegate void FTPProgressDelegate(string fileName, long lastBytesSent, long totalBytesSent, long fileSize);
 
@@ -68,7 +68,7 @@ namespace RandM.RMLib
             Smtp.Send(Msg);
         }
 
-        static public bool FtpUpload(bool useSsl, string hostName, string userName, RMSecureString password, string remoteDirectory, string fileName, EventHandler<FtpUploadProgressEventArgs> progressEventHandler)
+        public static bool FtpUpload(bool useSsl, string hostName, string userName, RMSecureString password, string remoteDirectory, string fileName, EventHandler<FtpUploadProgressEventArgs> progressEventHandler)
         {
             FtpWebRequest ftpRequest = null;
             try
@@ -119,12 +119,12 @@ namespace RandM.RMLib
             }
         }
 
-        static public bool FtpUploadCertificateValidation(Object sender, X509Certificate cert, X509Chain chain, SslPolicyErrors errors)
+        public static bool FtpUploadCertificateValidation(Object sender, X509Certificate cert, X509Chain chain, SslPolicyErrors errors)
         {
             return true;
         }
 
-        static public IPAddress GetExternalIPv4(GetExternalIPv4Methods[] methodOrder)
+        public static IPAddress GetExternalIPv4(GetExternalIPv4Methods[] methodOrder)
         {
             IPAddress Result = IPAddress.None;
 
@@ -215,7 +215,7 @@ namespace RandM.RMLib
             return UPnP.GetExternalIPv4();
         }
 
-        static public string HttpGet(string url)
+        public static string HttpGet(string url)
         {
             try
             {
@@ -230,7 +230,7 @@ namespace RandM.RMLib
             }
         }
 
-        static public string HttpPost(string url, NameValueCollection nameValues)
+        public static string HttpPost(string url, NameValueCollection nameValues)
         {
             bool OldExpect100Continue = ServicePointManager.Expect100Continue;
             ServicePointManager.Expect100Continue = false;
@@ -253,7 +253,7 @@ namespace RandM.RMLib
             }
         }
 
-        static public bool IsAdminUserHostAddress()
+        public static bool IsAdminUserHostAddress()
         {
             if (HttpContext.Current == null) return false;
 
@@ -289,7 +289,7 @@ namespace RandM.RMLib
             return false;
         }
 
-        static public bool IsPrivateIP(IPAddress ipAddress)
+        public static bool IsPrivateIP(IPAddress ipAddress)
         {
             if (ipAddress.AddressFamily == AddressFamily.InterNetwork)
             {
@@ -336,7 +336,7 @@ namespace RandM.RMLib
             }
         }
 
-        static public void ParseHostPort(string input, ref string hostname, ref int port)
+        public static void ParseHostPort(string input, ref string hostname, ref int port)
         {
             int ColonCount = input.Count(x => x == ':');
             if (ColonCount == 0)
@@ -376,7 +376,7 @@ namespace RandM.RMLib
             }
         }
 
-        static public void ParseHostPortTest()
+        public static void ParseHostPortTest()
         {
             string input = "127.0.0.1";
             string hostname = "";
@@ -427,7 +427,7 @@ namespace RandM.RMLib
             Console.WriteLine($"input={input}, hostname={hostname}, port={port}");
         }
 
-        static public bool Ping(string hostName, int timeout)
+        public static bool Ping(string hostName, int timeout)
         {
             try
             {
@@ -442,7 +442,7 @@ namespace RandM.RMLib
             }
         }
 
-        static public string UrlEncode(string url)
+        public static string UrlEncode(string url)
         {
             const string NO_ENCODE = "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
             string Result = "";

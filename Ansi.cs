@@ -1,20 +1,20 @@
 ﻿/*
   RMLib: Nonvisual support classes used by multiple R&M Software programs
-  Copyright (C) 2008-2014  Rick Parrish, R&M Software
+  Copyright (C) Rick Parrish, R&M Software
 
   This file is part of RMLib.
 
   RMLib is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
+  it under the terms of the GNU Lesser General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   any later version.
 
   RMLib is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+  GNU Lesser General Public License for more details.
 
-  You should have received a copy of the GNU General Public License
+  You should have received a copy of the GNU Lesser General Public License
   along with RMLib.  If not, see <http://www.gnu.org/licenses/>.
 */
 using System;
@@ -27,25 +27,25 @@ namespace RandM.RMLib
     /// The Ansi class is used for parsing and displaying ANSI formatted text to the
     /// console window.  Relies on the Crt unit for display.
     /// </summary>
-    static public class Ansi
+    public static class Ansi
     {
-        static private int _AnsiAttr = 7;
-        static private string _AnsiBuffer = "0";
-        static private Queue<int> _AnsiParams = new Queue<int>();
-        static private AnsiParserState _AnsiParserState = AnsiParserState.None;
-        static private object _Lock = new object();
-        static private int _SavedX = 0;
-        static private int _SavedY = 0;
+        private static int _AnsiAttr = 7;
+        private static string _AnsiBuffer = "0";
+        private static Queue<int> _AnsiParams = new Queue<int>();
+        private static AnsiParserState _AnsiParserState = AnsiParserState.None;
+        private static object _Lock = new object();
+        private static int _SavedX = 0;
+        private static int _SavedY = 0;
 
-        static public event EventHandler ESC5nEvent = null;
-        static public event EventHandler ESC6nEvent = null;
-        static public event EventHandler ESC255nEvent = null;
-        static public event EventHandler<ESCQEventArgs> ESCQEvent = null;
+        public static event EventHandler ESC5nEvent = null;
+        public static event EventHandler ESC6nEvent = null;
+        public static event EventHandler ESC255nEvent = null;
+        public static event EventHandler<ESCQEventArgs> ESCQEvent = null;
 
-        static private int[] ANSI_COLORS = { 0, 4, 2, 6, 1, 5, 3, 7 };
-        static private char ESC = '\x1B';
+        private static int[] ANSI_COLORS = { 0, 4, 2, 6, 1, 5, 3, 7 };
+        private static char ESC = '\x1B';
 
-        static private void AnsiCommand(char ACommand)
+        private static void AnsiCommand(char ACommand)
         {
             lock (_Lock)
             {
@@ -257,77 +257,77 @@ namespace RandM.RMLib
             }
         }
 
-        static public string ClrBol()
+        public static string ClrBol()
         {
             return ESC + "[1K";
         }
 
-        static public string ClrBos()
+        public static string ClrBos()
         {
             return ESC + "[1J";
         }
 
-        static public string ClrEol()
+        public static string ClrEol()
         {
             return ESC + "[K";
         }
 
-        static public string ClrEos()
+        public static string ClrEos()
         {
             return ESC + "[J";
         }
 
-        static public string ClrLine()
+        public static string ClrLine()
         {
             return ESC + "[2K";
         }
 
-        static public string ClrScr()
+        public static string ClrScr()
         {
             return ESC + "[2J";
         }
 
-        static public string CursorDown(int count)
+        public static string CursorDown(int count)
         {
             return ESC + "[" + count.ToString() + "B";
         }
 
-        static public string CursorLeft(int count)
+        public static string CursorLeft(int count)
         {
             return ESC + "[" + count.ToString() + "D";
         }
 
-        static public string CursorPosition()
+        public static string CursorPosition()
         {
             return CursorPosition(Crt.WhereXA(), Crt.WhereYA());
         }
 
-        static public string CursorPosition(int column, int row)
+        public static string CursorPosition(int column, int row)
 		{
 			return ESC + "[" + row + ";" + column + "R";	
 		}
 
-        static public string CursorRestore()
+        public static string CursorRestore()
         {
             return ESC + "[u";
         }
 
-        static public string CursorRight(int count)
+        public static string CursorRight(int count)
         {
             return ESC + "[" + count.ToString() + "C";
         }
 
-        static public string CursorSave()
+        public static string CursorSave()
         {
             return ESC + "[s";
         }
 
-        static public string CursorUp(int count)
+        public static string CursorUp(int count)
         {
             return ESC + "[" + count.ToString() + "A";
         }
 
-        static public string GotoX(int column)
+        public static string GotoX(int column)
         {
             if (column == 1)
             {
@@ -343,12 +343,12 @@ namespace RandM.RMLib
             }
         }
 
-        static public string GotoXY(int column, int row)
+        public static string GotoXY(int column, int row)
         {
             return ESC + "[" + row.ToString() + ";" + column.ToString() + "f";
         }
 
-        static public string GotoY(int row)
+        public static string GotoY(int row)
         {
             if (row == 1)
             {
@@ -396,18 +396,18 @@ namespace RandM.RMLib
             ESCQEvent?.Invoke(null, new ESCQEventArgs(codePage, width, height));
         }
 
-        static public string TextAttr(int attribute)
+        public static string TextAttr(int attribute)
         {
             return TextColor(attribute % 16) + TextBackground(attribute / 16);
         }
 
-        static public string TextBackground(int colour)
+        public static string TextBackground(int colour)
         {
             while (colour >= 8) colour -= 8;
             return ESC + "[" + (40 + ANSI_COLORS[colour]).ToString() + "m";
         }
 
-        static public string TextColor(int colour)
+        public static string TextColor(int colour)
         {
             switch (colour % 16)
             {
@@ -432,7 +432,7 @@ namespace RandM.RMLib
             return "";
         }
 
-        static public void Write(string text)
+        public static void Write(string text)
         {
             lock (_Lock)
             {

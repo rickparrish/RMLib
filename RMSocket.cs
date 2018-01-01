@@ -1,4 +1,9 @@
-﻿using System;
+﻿/*
+  Not sure where this code came from.  Probably was something I pulled from Mono while trying to make
+  the door kit work on Linux (ie allow it to open an existing socket handle, and not close it when
+  the door terminated)
+*/
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Net.Sockets;

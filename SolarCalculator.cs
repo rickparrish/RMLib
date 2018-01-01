@@ -1,22 +1,4 @@
 ﻿/*
-  RMLib: Nonvisual support classes used by multiple R&M Software programs
-  Copyright (C) 2008-2014  Rick Parrish, R&M Software
-
-  This file is part of RMLib.
-
-  RMLib is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  any later version.
-
-  RMLib is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with RMLib.  If not, see <http://www.gnu.org/licenses/>.
-
   This code file was originally downloaded from the following website:
   Earth Systems Research Laboratory - Global Monitoring Division
   NOAA Solar Calculator
@@ -34,7 +16,7 @@ namespace RandM.RMLib
 {
     public class SolarCalculator
     {
-        static private double calcTimeJulianCent(double jd)
+        private static double calcTimeJulianCent(double jd)
         {
             var T = (jd - 2451545.0) / 36525.0;
             return T;
@@ -74,17 +56,17 @@ namespace RandM.RMLib
         //  return doy;
         //}
 
-        static private double radToDeg(double angleRad)
+        private static double radToDeg(double angleRad)
         {
             return (180.0 * angleRad / Math.PI);
         }
 
-        static private double degToRad(double angleDeg)
+        private static double degToRad(double angleDeg)
         {
             return (Math.PI * angleDeg / 180.0);
         }
 
-        static private double calcGeomMeanLongSun(double t)
+        private static double calcGeomMeanLongSun(double t)
         {
             var L0 = 280.46646 + t * (36000.76983 + t * (0.0003032));
             while (L0 > 360.0)
@@ -98,19 +80,19 @@ namespace RandM.RMLib
             return L0;		// in degrees
         }
 
-        static private double calcGeomMeanAnomalySun(double t)
+        private static double calcGeomMeanAnomalySun(double t)
         {
             var M = 357.52911 + t * (35999.05029 - 0.0001537 * t);
             return M;		// in degrees
         }
 
-        static private double calcEccentricityEarthOrbit(double t)
+        private static double calcEccentricityEarthOrbit(double t)
         {
             var e = 0.016708634 - t * (0.000042037 + 0.0000001267 * t);
             return e;		// unitless
         }
 
-        static private double calcSunEqOfCenter(double t)
+        private static double calcSunEqOfCenter(double t)
         {
             var m = calcGeomMeanAnomalySun(t);
             var mrad = degToRad(m);
@@ -121,7 +103,7 @@ namespace RandM.RMLib
             return C;		// in degrees
         }
 
-        static private double calcSunTrueLong(double t)
+        private static double calcSunTrueLong(double t)
         {
             var l0 = calcGeomMeanLongSun(t);
             var c = calcSunEqOfCenter(t);
@@ -145,7 +127,7 @@ namespace RandM.RMLib
         //  return R;		// in AUs
         //}
 
-        static private double calcSunApparentLong(double t)
+        private static double calcSunApparentLong(double t)
         {
             var o = calcSunTrueLong(t);
             var omega = 125.04 - 1934.136 * t;
@@ -153,14 +135,14 @@ namespace RandM.RMLib
             return lambda;		// in degrees
         }
 
-        static private double calcMeanObliquityOfEcliptic(double t)
+        private static double calcMeanObliquityOfEcliptic(double t)
         {
             var seconds = 21.448 - t * (46.8150 + t * (0.00059 - t * (0.001813)));
             var e0 = 23.0 + (26.0 + (seconds / 60.0)) / 60.0;
             return e0;		// in degrees
         }
 
-        static private double calcObliquityCorrection(double t)
+        private static double calcObliquityCorrection(double t)
         {
             var e0 = calcMeanObliquityOfEcliptic(t);
             var omega = 125.04 - 1934.136 * t;
@@ -178,7 +160,7 @@ namespace RandM.RMLib
         //  return alpha;		// in degrees
         //}
 
-        static private double calcSunDeclination(double t)
+        private static double calcSunDeclination(double t)
         {
             var e = calcObliquityCorrection(t);
             var lambda = calcSunApparentLong(t);
@@ -188,7 +170,7 @@ namespace RandM.RMLib
             return theta;		// in degrees
         }
 
-        static private double calcEquationOfTime(double t)
+        private static double calcEquationOfTime(double t)
         {
             var epsilon = calcObliquityCorrection(t);
             var l0 = calcGeomMeanLongSun(t);
@@ -208,7 +190,7 @@ namespace RandM.RMLib
             return radToDeg(Etime) * 4.0;	// in minutes of time
         }
 
-        static private double calcHourAngleSunrise(double lat, double solarDec)
+        private static double calcHourAngleSunrise(double lat, double solarDec)
         {
             var latRad = degToRad(lat);
             var sdRad = degToRad(solarDec);
@@ -242,7 +224,7 @@ namespace RandM.RMLib
         //}
 
 
-        static private string zeroPad(double n, int digits)
+        private static string zeroPad(double n, int digits)
         {
             var n_str = n.ToString();
             while (n_str.Length < digits)
@@ -297,7 +279,7 @@ namespace RandM.RMLib
         //monthList[i++] = new month("December", 31, "Dec");
 
 
-        static private double getJD()
+        private static double getJD()
         {
             var docmonth = (double)DateTime.Now.Month;
             var docday = (double)DateTime.Now.Day;
@@ -325,7 +307,7 @@ namespace RandM.RMLib
             return JD;
         }
 
-        static private double getTimeLocal()
+        private static double getTimeLocal()
         {
             var dochr = (double)DateTime.Now.Hour;
             var docmn = (double)DateTime.Now.Minute;
@@ -448,7 +430,7 @@ namespace RandM.RMLib
         //  document.getElementById("noonbox").value = timeString(solNoonLocal, 3)
         //}
 
-        static private string dayString(double jd, bool next, int flag)
+        private static string dayString(double jd, bool next, int flag)
         {
             // returns a string in the form DDMMMYYYY[ next] to display prev/next rise/set
             // flag=2 for DD MMM, 3 for DD MM YYYY, 4 for DDMMYYYY next/prev
@@ -488,13 +470,13 @@ namespace RandM.RMLib
             return output;
         }
 
-        static private string timeDateString(double JD, double minutes)
+        private static string timeDateString(double JD, double minutes)
         {
             var output = timeString(minutes, 2) + " " + dayString(JD, false, 2);
             return output;
         }
 
-        static private string timeString(double minutes, int flag)
+        private static string timeString(double minutes, int flag)
         // timeString returns a zero-padded string (HH:MM:SS) given time in minutes
         // flag=2 for HH:MM, 3 for HH:MM:SS
         {
@@ -528,7 +510,7 @@ namespace RandM.RMLib
             return output;
         }
 
-        static private double calcSunriseSetUTC(bool rise, double JD, double latitude, double longitude)
+        private static double calcSunriseSetUTC(bool rise, double JD, double latitude, double longitude)
         {
             var t = calcTimeJulianCent(JD);
             var eqTime = calcEquationOfTime(t);
@@ -541,7 +523,7 @@ namespace RandM.RMLib
             return timeUTC;
         }
 
-        static private double calcSunriseSet(bool rise, double JD, double latitude, double longitude, double timezone, bool dst)
+        private static double calcSunriseSet(bool rise, double JD, double latitude, double longitude, double timezone, bool dst)
         // rise = 1 for sunrise, 0 for sunset
         {
             var id = ((rise) ? "risebox" : "setbox");
@@ -644,7 +626,7 @@ namespace RandM.RMLib
         /// <param name="tz">The timezone</param>
         /// <param name="dst">Daylight savings time?</param>
         /// <returns>true if the sun is up at the given location, false otherwise</returns>
-        static public bool IsSunUp(double lat, double lng, double tz, bool dst)
+        public static bool IsSunUp(double lat, double lng, double tz, bool dst)
         {
             var jday = getJD();
             var rise = calcSunriseSet(true, jday, lat, lng, tz, dst);

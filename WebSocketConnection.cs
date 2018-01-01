@@ -1,20 +1,20 @@
 ﻿/*
   RMLib: Nonvisual support classes used by multiple R&M Software programs
-  Copyright (C) 2008-2014  Rick Parrish, R&M Software
+  Copyright (C) Rick Parrish, R&M Software
 
   This file is part of RMLib.
 
   RMLib is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
+  it under the terms of the GNU Lesser General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   any later version.
 
   RMLib is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+  GNU Lesser General Public License for more details.
 
-  You should have received a copy of the GNU General Public License
+  You should have received a copy of the GNU Lesser General Public License
   along with RMLib.  If not, see <http://www.gnu.org/licenses/>.
 
   The handshake/negotiation routines in this class were not written by me.  Unfortunately
@@ -477,7 +477,7 @@ namespace RandM.RMLib
                             }
                             catch (Exception ex)
                             {
-                                RMLog.Error("Error during SSL.AuthenticateAsServer(): " + ex.Message);
+                                RMLog.Debug("Error during SSL.AuthenticateAsServer(): " + ex.Message);
                                 return false;
                             }
                             Protocol = "wss";
@@ -486,7 +486,7 @@ namespace RandM.RMLib
                 }
                 else
                 {
-                    RMLog.Error("Timeout exceeded while waiting for complete handshake");
+                    RMLog.Debug("Timeout exceeded while waiting for complete handshake");
                     return false;
                 }
 
@@ -497,10 +497,10 @@ namespace RandM.RMLib
                     // Read another line, and abort if we don't get one within 5 seconds
                     string InLine = ReadLn(new string[] { "\r\n", "\0" }, false, '\0', 5000).Trim();
                     if (ReadTimedOut) {
-                        RMLog.Error("Timeout exceeded while waiting for next handshake line");
+                        RMLog.Debug("Timeout exceeded while waiting for next handshake line");
                         return false;
                     } else if (DateTime.Now.Subtract(LoopStart).TotalSeconds > 30.0) {
-                        RMLog.Error("Timeout exceeded while waiting for handshake to complete");
+                        RMLog.Debug("Timeout exceeded while waiting for handshake to complete");
                         return false;
                     }
 
@@ -624,7 +624,7 @@ namespace RandM.RMLib
             }
             catch (Exception ex)
             {
-                RMLog.Exception(ex, "Exception in WebSocketConnection::ShakeHands()");
+                RMLog.DebugException(ex, "Exception in WebSocketConnection::ShakeHands()");
             }
 
             return false;
@@ -666,8 +666,8 @@ namespace RandM.RMLib
             else
             {
                 // We're missing some pice of data, log what we do have
-                RMLog.Error("Missing some piece of handshake data.  Here's what we have:");
-                foreach (DictionaryEntry DE in _Header) RMLog.Error(DE.Key + " => " + DE.Value);
+                RMLog.Debug("Missing some piece of handshake data.  Here's what we have:");
+                foreach (DictionaryEntry DE in _Header) RMLog.Debug(DE.Key + " => " + DE.Value);
                 return false;
             }
         }
@@ -705,8 +705,8 @@ namespace RandM.RMLib
             else
             {
                 // We're missing some pice of data, log what we do have
-                RMLog.Error("Missing some piece of handshake data.  Here's what we have:");
-                foreach (DictionaryEntry DE in _Header) RMLog.Error(DE.Key + " => " + DE.Value);
+                RMLog.Debug("Missing some piece of handshake data.  Here's what we have:");
+                foreach (DictionaryEntry DE in _Header) RMLog.Debug(DE.Key + " => " + DE.Value);
                 return false;
             }
         }

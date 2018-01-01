@@ -1,20 +1,20 @@
 /*
   RMLib: Nonvisual support classes used by multiple R&M Software programs
-  Copyright (C) 2008-2014  Rick Parrish, R&M Software
+  Copyright (C) Rick Parrish, R&M Software
 
   This file is part of RMLib.
 
   RMLib is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
+  it under the terms of the GNU Lesser General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   any later version.
 
   RMLib is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+  GNU Lesser General Public License for more details.
 
-  You should have received a copy of the GNU General Public License
+  You should have received a copy of the GNU Lesser General Public License
   along with RMLib.  If not, see <http://www.gnu.org/licenses/>.
 */
 using System;
@@ -29,17 +29,17 @@ namespace RandM.RMLib
     /// A static class for manipulating a console window
     /// Compatibility with the Borland Pascal CRT unit was attempted, along with a few new additions
     /// </summary>
-    static public class Crt
+    public static class Crt
     {
         /* Private variables */
-        static private Queue<char> _KeyBuf = new Queue<char>();
-        static private object _Lock = new object();
-        static private int _NormAttr = LightGray;
-        static private NativeMethods.COORD _ScreenSize = new NativeMethods.COORD();
-        static private IntPtr _StdInputHandle = IntPtr.Zero;
-        static private IntPtr _StdOutputHandle = IntPtr.Zero;
-        static private int _TextAttr = LightGray;
-        static private int _TextMode = CO80;
+        private static Queue<char> _KeyBuf = new Queue<char>();
+        private static object _Lock = new object();
+        private static int _NormAttr = LightGray;
+        private static NativeMethods.COORD _ScreenSize = new NativeMethods.COORD();
+        private static IntPtr _StdInputHandle = IntPtr.Zero;
+        private static IntPtr _StdOutputHandle = IntPtr.Zero;
+        private static int _TextAttr = LightGray;
+        private static int _TextMode = CO80;
 
         /*  Color Constants
           ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
@@ -77,7 +77,7 @@ namespace RandM.RMLib
         public const int C80 = CO80;     // 3.0 compatibility
 
         #region ReadKey() Key Mappings
-        static private int[] TKeys = {
+        private static int[] TKeys = {
                  0,    0,    0,    0,    0,    0,    0,    0,    8,    9,    0,    0,    0,   13,    0,    0,  // 0..15
                  0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   27,    0,    0,    0,    0,  // 16..31
                 32, 1073, 1081, 1079, 1071, 1075, 1072, 1077, 1080,    0,    0,    0,    0, 1082, 1083,    0,  // 32..47
@@ -95,7 +95,7 @@ namespace RandM.RMLib
                  0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,  // 223..239
                  0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0}; // 240..255
 
-        static private int[] TAltKeys = {
+        private static int[] TAltKeys = {
                  0,    0,    0,    0,    0,    0,    0,    0, 1008,    0,    0,    0,    0,    0,    0,    0,  // 0..15
                  0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,  // 16..31
                  0, 1153, 1161, 1159, 1151, 1155, 1152, 1157, 1160,    0,    0,    0,    0, 1162, 1163,    0,  // 32..47
@@ -113,7 +113,7 @@ namespace RandM.RMLib
                  0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,  // 223..239
                  0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0}; // 240..255
 
-        static private int[] TCtrlKeys = {
+        private static int[] TCtrlKeys = {
                  0,    0,    0,    0,    0,    0,    0,    0,  127, 1148,    0,    0,    0,   10,    0,    0,  // 0..15
                  0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,  // 16..31
                 32, 1132, 1118, 1117, 1119, 1115, 1141, 1116, 1145,    0,    0,    0,    0, 1004, 1006,    0,  // 32..47
@@ -131,7 +131,7 @@ namespace RandM.RMLib
                  0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,  // 223..239
                  0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0}; // 240..255
 
-        static private int[] TShiftKeys = {
+        private static int[] TShiftKeys = {
                  0,    0,    0,    0,    0,    0,    0,    0,    8, 1015,    0,    0,    0,   13,    0,    0,  // 0..15
                  0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   27,    0,    0,    0,    0,  // 16..31
                 32, 1073, 1081, 1079, 1071, 1075, 1072, 1077, 1080,    0,    0,    0,    0, 1005, 1007,    0,  // 32..47
@@ -211,7 +211,7 @@ namespace RandM.RMLib
         /// standard output (or input).
         /// </remarks>
         /// <param name="f">The text file to associate with the CRT window</param>
-        static public void AssignCrt(object f)
+        public static void AssignCrt(object f)
         {
             lock (_Lock)
             {
@@ -238,7 +238,7 @@ namespace RandM.RMLib
         /// At run time, Crt stores the old Ctrl-Break interrupt vector, $1B, in a
         /// global pointer called SaveInt1B.
         /// </remarks>
-        static public bool CheckBreak { get; set; }
+        public static bool CheckBreak { get; set; }
 
         /// <summary>
         /// Controls the end-of-file character checking in the CRT window.
@@ -251,7 +251,7 @@ namespace RandM.RMLib
         ///
         /// CheckEOF is False by default.
         /// </remarks>
-        static public bool CheckEof { get; set; }
+        public static bool CheckEof { get; set; }
 
         /// <summary>
         /// Clears all characters from the cursor position to the start of the line
@@ -264,7 +264,7 @@ namespace RandM.RMLib
         ///
         /// ClrBol is window-relative.
         /// </remarks>
-        static public void ClrBol()
+        public static void ClrBol()
         {
             lock (_Lock)
             {
@@ -283,7 +283,7 @@ namespace RandM.RMLib
         ///
         /// ClrBos is window-relative.
         /// </remarks>
-        static public void ClrBos()
+        public static void ClrBos()
         {
             lock (_Lock)
             {
@@ -306,7 +306,7 @@ namespace RandM.RMLib
         ///
         /// ClrEol is window-relative.
         /// </remarks>
-        static public void ClrEol()
+        public static void ClrEol()
         {
             lock (_Lock)
             {
@@ -325,7 +325,7 @@ namespace RandM.RMLib
         ///
         /// ClrEos is window-relative.
         /// </remarks>
-        static public void ClrEos()
+        public static void ClrEos()
         {
             lock (_Lock)
             {
@@ -348,7 +348,7 @@ namespace RandM.RMLib
         ///
         /// ClrLine is window-relative.
         /// </remarks>
-        static public void ClrLine()
+        public static void ClrLine()
         {
             lock (_Lock)
             {
@@ -367,7 +367,7 @@ namespace RandM.RMLib
         ///
         /// ClrScr is window-relative.
         /// </remarks>
-        static public void ClrScr()
+        public static void ClrScr()
         {
             lock (_Lock)
             {
@@ -393,7 +393,7 @@ namespace RandM.RMLib
         /// <summary>
         /// Sets the foreground colour to be the same as the background colour
         /// </summary>
-        static public void Conceal()
+        public static void Conceal()
         {
             lock (_Lock)
             {
@@ -411,17 +411,17 @@ namespace RandM.RMLib
         /// milliseconds.
         /// </remarks>
         /// <param name="milliseconds">The number of milliseconds to wait</param>
-        static public void Delay(int milliseconds)
+        public static void Delay(int milliseconds)
         {
             Thread.Sleep(milliseconds);
         }
 
-        static public void DelChar()
+        public static void DelChar()
         {
             DelChar(1);
         }
 
-        static public void DelChar(int count)
+        public static void DelChar(int count)
         {
             for (int i = WhereXA(); i <= WindMinX + WindCols - count; i++)
             {
@@ -444,7 +444,7 @@ namespace RandM.RMLib
         /// attributes. Thus, if TextBackground is not black, the new line becomes the
         /// background color.
         /// </remarks>
-        static public void DelLine()
+        public static void DelLine()
         {
             lock (_Lock)
             {
@@ -464,7 +464,7 @@ namespace RandM.RMLib
         /// background color.
         /// </remarks>
         /// <param name="count">The number of lines to delete</param>
-        static public void DelLine(int count)
+        public static void DelLine(int count)
         {
             lock (_Lock)
             {
@@ -489,9 +489,9 @@ namespace RandM.RMLib
         /// If you want characters displayed through BIOS calls, set DirectVideo to
         /// False at the beginning of your program and after each call to TextMode.
         /// </remarks>
-        static public bool DirectVideo { get; set; }
+        public static bool DirectVideo { get; set; }
 
-        static public void FastWrite(string text, int column, int row, int foregroundColour, int backgroundColour)
+        public static void FastWrite(string text, int column, int row, int foregroundColour, int backgroundColour)
         {
             lock (_Lock)
             {
@@ -508,7 +508,7 @@ namespace RandM.RMLib
         /// <param name="column">The 1-based column to start the text</param>
         /// <param name="row">The 1-based row to start the text</param>
         /// <param name="attribute">The text attribute to colour the text</param>
-        static public void FastWrite(string text, int column, int row, int attribute)
+        public static void FastWrite(string text, int column, int row, int attribute)
         {
             lock (_Lock)
             {
@@ -571,7 +571,7 @@ namespace RandM.RMLib
             }
         }
 
-        static public void FillScreen(char ch)
+        public static void FillScreen(char ch)
         {
             string Line = new string(ch, ScreenCols);
             for (int Y = 1; Y <= ScreenRows; Y++)
@@ -588,7 +588,7 @@ namespace RandM.RMLib
         /// <param name="column">The 1-based column to look at</param>
         /// <param name="row">The 1-based row to look at</param>
         /// <returns>The text attribute at the given X/Y coordinate</returns>
-        static public int GetAttrAt(int column, int row)
+        public static int GetAttrAt(int column, int row)
         {
             lock (_Lock)
             {
@@ -625,7 +625,7 @@ namespace RandM.RMLib
         /// <param name="column">The 1-based column to look at</param>
         /// <param name="row">The 1-based row to look at</param>
         /// <returns>The character at the given X/Y coordinate</returns>
-        static public char GetCharAt(int column, int row)
+        public static char GetCharAt(int column, int row)
         {
             lock (_Lock)
             {
@@ -654,7 +654,7 @@ namespace RandM.RMLib
             }
         }
 
-        static private ConsoleColor GetConsoleColour(int AColour)
+        private static ConsoleColor GetConsoleColour(int AColour)
         {
             lock (_Lock)
             {
@@ -692,7 +692,7 @@ namespace RandM.RMLib
         /// </remarks>
         /// <param name="column">The 1-based column to move to</param>
         /// <param name="row">The 1-based row to move to</param>
-        static public void GotoXY(int column, int row)
+        public static void GotoXY(int column, int row)
         {
             lock (_Lock)
             {
@@ -729,7 +729,7 @@ namespace RandM.RMLib
         /// <summary>
         /// Hides the console window (restore it with Show())
         /// </summary>
-        static public void HideConsole()
+        public static void HideConsole()
         {
             lock (_Lock)
             {
@@ -744,7 +744,7 @@ namespace RandM.RMLib
             }
         }
 
-        static public void HideCursor()
+        public static void HideCursor()
         {
             lock (_Lock)
             {
@@ -779,7 +779,7 @@ namespace RandM.RMLib
         /// video attribute. HighVideo sets the high intensity bit of TextAttr's
         /// fore-ground color, thus mapping colors 0-7 onto colors 8-15.
         /// </remarks>
-        static public void HighVideo()
+        public static void HighVideo()
         {
             lock (_Lock)
             {
@@ -787,12 +787,12 @@ namespace RandM.RMLib
             }
         }
 
-        static public void InsChar(char ch)
+        public static void InsChar(char ch)
         {
             InsChar(ch, 1);
         }
 
-        static public void InsChar(char ch, int count)
+        public static void InsChar(char ch, int count)
         {
             // First make room for the new char(s)
             for (int i = WindMinX + WindCols; i >= WhereXA() + count; i--)
@@ -819,7 +819,7 @@ namespace RandM.RMLib
         /// 
         /// InsLine is window-relative.
         /// </remarks>
-        static public void InsLine()
+        public static void InsLine()
         {
             lock (_Lock)
             {
@@ -841,7 +841,7 @@ namespace RandM.RMLib
         /// InsLine is window-relative.
         /// </remarks>
         /// <param name="count">The number of lines to insert</param>
-        static public void InsLine(int count)
+        public static void InsLine(int count)
         {
             lock (_Lock)
             {
@@ -856,7 +856,7 @@ namespace RandM.RMLib
         /// <remarks>
         /// </remarks>
         /// <returns>True If key has been pressed False If key has not been pressed</returns>
-        static public bool KeyPressed()
+        public static bool KeyPressed()
         {
             lock (_Lock)
             {
@@ -1000,7 +1000,7 @@ namespace RandM.RMLib
         /// <remarks>
         /// Also, LastMode is initialized at program startup to the then-active video mode.
         /// </remarks>
-        static public int LastMode { get; set; }
+        public static int LastMode { get; set; }
 
         /// <summary>
         /// Selects low intensity characters.
@@ -1010,7 +1010,7 @@ namespace RandM.RMLib
         /// attribute. LowVideo clears the high-intensity bit of TextAttr's foreground
         /// color, thus mapping colors 8 to 15 onto colors 0 to 7.
         /// </remarks>
-        static public void LowVideo()
+        public static void LowVideo()
         {
             lock (_Lock)
             {
@@ -1026,7 +1026,7 @@ namespace RandM.RMLib
         /// attribute. NormVideo restores TextAttr to the value it had when the program
         /// was started.
         /// </remarks>
-        static public void NormVideo()
+        public static void NormVideo()
         {
             lock (_Lock)
             {
@@ -1037,7 +1037,7 @@ namespace RandM.RMLib
         /// <summary>
         /// Turns off the computer's internal speaker.
         /// </summary>
-        static public void NoSound()
+        public static void NoSound()
         {
             lock (_Lock)
             {
@@ -1052,7 +1052,7 @@ namespace RandM.RMLib
         /// The character is not echoed to the screen.
         /// </remarks>
         /// <returns>Returns a character or an extended scan code.</returns>
-        static public char ReadKey()
+        public static char ReadKey()
         {
             lock (_Lock)
             {
@@ -1065,7 +1065,7 @@ namespace RandM.RMLib
         /// Reads a line of text from the keyboard.
         /// </summary>
         /// <returns>Returns a string of text</returns>
-        static public void ReadLn(out string text)
+        public static void ReadLn(out string text)
         {
             lock (_Lock)
             {
@@ -1096,7 +1096,7 @@ namespace RandM.RMLib
             }
         }
 
-        static public void RestoreScreen(NativeMethods.CHAR_INFO[] buffer, int left, int top, int right, int bottom)
+        public static void RestoreScreen(NativeMethods.CHAR_INFO[] buffer, int left, int top, int right, int bottom)
         {
             lock (_Lock)
             {
@@ -1131,7 +1131,7 @@ namespace RandM.RMLib
         /// <summary>
         /// Reverses the foreground and background text attributes
         /// </summary>
-        static public void ReverseVideo()
+        public static void ReverseVideo()
         {
             lock (_Lock)
             {
@@ -1139,7 +1139,7 @@ namespace RandM.RMLib
             }
         }
 
-        static public NativeMethods.CHAR_INFO[] SaveScreen(int left, int top, int right, int bottom)
+        public static NativeMethods.CHAR_INFO[] SaveScreen(int left, int top, int right, int bottom)
         {
             lock (_Lock)
             {
@@ -1172,12 +1172,12 @@ namespace RandM.RMLib
             }
         }
 
-        static public int ScreenCols
+        public static int ScreenCols
         {
             get { return _ScreenSize.X; }
         }
 
-        static public int ScreenRows
+        public static int ScreenRows
         {
             get { return _ScreenSize.Y; }
         }
@@ -1192,7 +1192,7 @@ namespace RandM.RMLib
         /// <param name="ALines">The number of lines to scroll</param>
         /// <param name="ACh">The character to fill the void with</param>
         /// <param name="AAttr">The text attribute to fill the void with</param>
-        static private void ScrollDownCustom(int AX1, int AY1, int AX2, int AY2, int ALines, char ACh, int AAttr)
+        private static void ScrollDownCustom(int AX1, int AY1, int AX2, int AY2, int ALines, char ACh, int AAttr)
         {
             lock (_Lock)
             {
@@ -1232,7 +1232,7 @@ namespace RandM.RMLib
         /// Scrolls the screen down the given number of lines (leaving blanks at the top)
         /// </summary>
         /// <param name="count">The number of lines to scroll</param>
-        static public void ScrollDownScreen(int count)
+        public static void ScrollDownScreen(int count)
         {
             lock (_Lock)
             {
@@ -1244,7 +1244,7 @@ namespace RandM.RMLib
         /// Scrolls the current window down the given number of lines (leaving blanks at the top)
         /// </summary>
         /// <param name="count">The number of lines to scroll</param>
-        static public void ScrollDownWindow(int count)
+        public static void ScrollDownWindow(int count)
         {
             lock (_Lock)
             {
@@ -1262,7 +1262,7 @@ namespace RandM.RMLib
         /// <param name="ALines">The number of lines to scroll</param>
         /// <param name="ACh">The character to fill the void with</param>
         /// <param name="AAttr">The text attribute to fill the void with</param>
-        static private void ScrollUpCustom(int AX1, int AY1, int AX2, int AY2, int ALines, char ACh, int AAttr)
+        private static void ScrollUpCustom(int AX1, int AY1, int AX2, int AY2, int ALines, char ACh, int AAttr)
         {
             lock (_Lock)
             {
@@ -1316,7 +1316,7 @@ namespace RandM.RMLib
         /// Scrolls the screen up the given number of lines (leaving blanks at the bottom)
         /// </summary>
         /// <param name="count">The number of lines to scroll</param>
-        static public void ScrollUpScreen(int count)
+        public static void ScrollUpScreen(int count)
         {
             lock (_Lock)
             {
@@ -1328,7 +1328,7 @@ namespace RandM.RMLib
         /// Scrolls the current window up the given number of lines (leaving blanks at the bottom)
         /// </summary>
         /// <param name="count">The number of lines to scroll</param>
-        static public void ScrollUpWindow(int count)
+        public static void ScrollUpWindow(int count)
         {
             lock (_Lock)
             {
@@ -1362,7 +1362,7 @@ namespace RandM.RMLib
             }
         }
 
-        static public void SetTitle(string text)
+        public static void SetTitle(string text)
         {
             lock (_Lock)
             {
@@ -1384,7 +1384,7 @@ namespace RandM.RMLib
             }
         }
 
-        static public void SetWindowSize(int columns, int rows)
+        public static void SetWindowSize(int columns, int rows)
         {
             lock (_Lock)
             {
@@ -1439,7 +1439,7 @@ namespace RandM.RMLib
         /// <summary>
         /// Shows the console window (useful after calling Hide())
         /// </summary>
-        static public void ShowConsole()
+        public static void ShowConsole()
         {
             lock (_Lock)
             {
@@ -1454,7 +1454,7 @@ namespace RandM.RMLib
             }
         }
 
-        static public void ShowCursor()
+        public static void ShowCursor()
         {
             lock (_Lock)
             {
@@ -1489,7 +1489,7 @@ namespace RandM.RMLib
         /// continues until explicitly turned off by a call to NoSound.
         /// </remarks>
         /// <param name="frequency">The frequency of the emitted sound in hertz</param>
-        static public void Sound(int frequency)
+        public static void Sound(int frequency)
         {
             lock (_Lock)
             {
@@ -1506,7 +1506,7 @@ namespace RandM.RMLib
         ///
         /// However, you can also set them by directly storing a value in TextAttr.
         /// </remarks>
-        static public int TextAttr
+        public static int TextAttr
         {
             get { return _TextAttr; }
             set
@@ -1543,7 +1543,7 @@ namespace RandM.RMLib
         /// specified color.
         /// </remarks>
         /// <param name="colour">The colour to set the background to</param>
-        static public void TextBackground(int colour)
+        public static void TextBackground(int colour)
         {
             lock (_Lock)
             {
@@ -1570,7 +1570,7 @@ namespace RandM.RMLib
         /// color.
         /// </remarks>
         /// <param name="colour">The colour to set the foreground to</param>
-        static public void TextColor(int colour)
+        public static void TextColor(int colour)
         {
             lock (_Lock)
             {
@@ -1589,7 +1589,7 @@ namespace RandM.RMLib
         /// LastMode is initialized at program startup to the then-active video mode.
         /// </remarks>
         /// <param name="mode"></param>
-        static public void TextMode(int mode)
+        public static void TextMode(int mode)
         {
             lock (_Lock)
             {
@@ -1605,7 +1605,7 @@ namespace RandM.RMLib
         /// WhereX is window-specific.
         /// </remarks>
         /// <returns>The 1-based column of the window the cursor is currently in</returns>
-        static public int WhereX()
+        public static int WhereX()
         {
             lock (_Lock)
             {
@@ -1620,7 +1620,7 @@ namespace RandM.RMLib
         /// WhereXA is not window-specific.
         /// </remarks>
         /// <returns>The 1-based column of the screen the cursor is currently in</returns>
-        static public int WhereXA()
+        public static int WhereXA()
         {
             lock (_Lock)
             {
@@ -1652,7 +1652,7 @@ namespace RandM.RMLib
         /// WhereY is window-specific.
         /// </remarks>
         /// <returns>The 1-based row of the window the cursor is currently in</returns>
-        static public int WhereY()
+        public static int WhereY()
         {
             lock (_Lock)
             {
@@ -1667,7 +1667,7 @@ namespace RandM.RMLib
         /// WhereYA is now window-specific.
         /// </remarks>
         /// <returns>The 1-based row of the screen the cursor is currently in</returns>
-        static public int WhereYA()
+        public static int WhereYA()
         {
             lock (_Lock)
             {
@@ -1695,7 +1695,7 @@ namespace RandM.RMLib
         /// <summary>
         /// The number of columns found in the currently defined window
         /// </summary>
-        static public int WindCols
+        public static int WindCols
         {
             get
             {
@@ -1709,12 +1709,12 @@ namespace RandM.RMLib
         /// <summary>
         /// The 0-based lower right coordinate of the current window
         /// </summary>
-        static public int WindMax { get; set; }
+        public static int WindMax { get; set; }
 
         /// <summary>
         /// The 0-based left column of the current window
         /// </summary>
-        static public int WindMaxX
+        public static int WindMaxX
         {
             get
             {
@@ -1728,7 +1728,7 @@ namespace RandM.RMLib
         /// <summary>
         /// The 0-based right column of the current window
         /// </summary>
-        static public int WindMaxY
+        public static int WindMaxY
         {
             get
             {
@@ -1742,12 +1742,12 @@ namespace RandM.RMLib
         /// <summary>
         /// The 0-based upper left coordinate of the current window
         /// </summary>
-        static public int WindMin { get; set; }
+        public static int WindMin { get; set; }
 
         /// <summary>
         /// The 0-based top row of the current window
         /// </summary>
-        static public int WindMinX
+        public static int WindMinX
         {
             get
             {
@@ -1761,7 +1761,7 @@ namespace RandM.RMLib
         /// <summary>
         /// The 0-based bottom row of the current window
         /// </summary>
-        static public int WindMinY
+        public static int WindMinY
         {
             get
             {
@@ -1800,7 +1800,7 @@ namespace RandM.RMLib
         /// <param name="top">The 1-based top row of the window</param>
         /// <param name="right">The 1-based right column of the window</param>
         /// <param name="bottom">The 1-based bottom row of the window</param>
-        static public void Window(int left, int top, int right, int bottom)
+        public static void Window(int left, int top, int right, int bottom)
         {
             lock (_Lock)
             {
@@ -1823,7 +1823,7 @@ namespace RandM.RMLib
         /// <summary>
         /// The number of rows found in the currently defined window
         /// </summary>
-        static public int WindRows
+        public static int WindRows
         {
             get
             {
@@ -1841,7 +1841,7 @@ namespace RandM.RMLib
         /// Text is wrapped if it exceeds the right edge of the window
         /// </remarks>
         /// <param name="text">The text to print to the screen</param>
-        static public void Write(string text)
+        public static void Write(string text)
         {
             lock (_Lock)
             {
@@ -1925,7 +1925,7 @@ namespace RandM.RMLib
         /// <summary>
         /// Writes a carriage return and line feed.
         /// </summary>
-        static public void WriteLn()
+        public static void WriteLn()
         {
             lock (_Lock)
             {
@@ -1940,7 +1940,7 @@ namespace RandM.RMLib
         /// Text is wrapped if it exceeds the right edge of the window
         /// </remarks>
         /// <param name="text">The text to print to the screen</param>
-        static public void WriteLn(string text)
+        public static void WriteLn(string text)
         {
             lock (_Lock)
             {
@@ -1986,7 +1986,7 @@ namespace RandM.RMLib
         }
     }
 
-    static public class CharacterMask
+    public static class CharacterMask
     {
         public const string All = "`1234567890-=\\qwertyuiop[]asdfghjkl;'zxcvbnm,./~!@#$%^&*()_+|QWERTYUIOP{}ASDFGHJKL:\"ZXCVBNM<>? ";
         public const string Alpha = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM";

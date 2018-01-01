@@ -1,20 +1,20 @@
 /*
   RMLib: Nonvisual support classes used by multiple R&M Software programs
-  Copyright (C) 2008-2014  Rick Parrish, R&M Software
+  Copyright (C) Rick Parrish, R&M Software
 
   This file is part of RMLib.
 
   RMLib is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
+  it under the terms of the GNU Lesser General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   any later version.
 
   RMLib is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+  GNU Lesser General Public License for more details.
 
-  You should have received a copy of the GNU General Public License
+  You should have received a copy of the GNU Lesser General Public License
   along with RMLib.  If not, see <http://www.gnu.org/licenses/>.
 */
 using System;
@@ -118,12 +118,12 @@ namespace RandM.RMLib
             }
             catch (SocketException sex)
             {
-                RMLog.Exception(sex, "SocketException in TcpConnection::Accept().  ErrorCode=" + sex.ErrorCode.ToString());
+                RMLog.DebugException(sex, "SocketException in TcpConnection::Accept().  ErrorCode=" + sex.ErrorCode.ToString());
                 return null;
             }
             catch (Exception ex)
             {
-                RMLog.Exception(ex, "Exception in TcpConnection::Accept()");
+                RMLog.DebugException(ex, "Exception in TcpConnection::Accept()");
                 return null;
             }
         }
@@ -139,12 +139,12 @@ namespace RandM.RMLib
             }
             catch (SocketException sex)
             {
-                RMLog.Exception(sex, "SocketException in TcpConnection::AcceptTCP().  ErrorCode=" + sex.ErrorCode.ToString());
+                RMLog.DebugException(sex, "SocketException in TcpConnection::AcceptTCP().  ErrorCode=" + sex.ErrorCode.ToString());
                 return null;
             }
             catch (Exception ex)
             {
-                RMLog.Exception(ex, "Exception in TcpConnection::AcceptTCP()");
+                RMLog.DebugException(ex, "Exception in TcpConnection::AcceptTCP()");
                 return null;
             }
         }
@@ -192,12 +192,12 @@ namespace RandM.RMLib
             }
             catch (SocketException sex)
             {
-                RMLog.Exception(sex, "SocketException in TcpConnection::CanAccept().  ErrorCode=" + sex.ErrorCode.ToString());
+                RMLog.DebugException(sex, "SocketException in TcpConnection::CanAccept().  ErrorCode=" + sex.ErrorCode.ToString());
                 return false;
             }
             catch (Exception ex)
             {
-                RMLog.Exception(ex, "Exception in TcpConnection::CanAccept()");
+                RMLog.DebugException(ex, "Exception in TcpConnection::CanAccept()");
                 return false;
             }
         }
@@ -227,12 +227,12 @@ namespace RandM.RMLib
                     switch (sex.ErrorCode)
                     {
                         case 10057: break; // The socket is not connected
-                        default: RMLog.Exception(sex, "SocketException in TcpConnection::Close().  ErrorCode=" + sex.ErrorCode.ToString()); break;
+                        default: RMLog.DebugException(sex, "SocketException in TcpConnection::Close().  ErrorCode=" + sex.ErrorCode.ToString()); break;
                     }
                 }
                 catch (Exception ex)
                 {
-                    RMLog.Exception(ex, "Exception in TcpConnection::Close()");
+                    RMLog.DebugException(ex, "Exception in TcpConnection::Close()");
                 }
                 if (Connected)
                 {
@@ -252,7 +252,7 @@ namespace RandM.RMLib
             {
                 // Get the ip addresses for the give hostname, and then convert from ipv4 to ipv6 if necessary
                 var HostAddresses = new List<IPAddress>();
-                if (OSUtils.IsWinXPOr2003)
+                if (!Socket.OSSupportsIPv6)
                 {
                     HostAddresses.AddRange(Dns.GetHostAddresses(hostName));
                     _Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
@@ -312,13 +312,13 @@ namespace RandM.RMLib
                     case 10060: break; // Connection timed out
                     case 10061: break; // Connection refused
                     case 10065: break; // No route to host
-                    default: RMLog.Exception(sex, "SocketException in TcpConnection::Connect().  ErrorCode=" + sex.ErrorCode.ToString()); break;
+                    default: RMLog.DebugException(sex, "SocketException in TcpConnection::Connect().  ErrorCode=" + sex.ErrorCode.ToString()); break;
                 }
                 return false;
             }
             catch (Exception ex)
             {
-                RMLog.Exception(ex, "Exception in TcpConnection::Connect()");
+                RMLog.DebugException(ex, "Exception in TcpConnection::Connect()");
                 return false;
             }
         }
@@ -337,12 +337,12 @@ namespace RandM.RMLib
             }
             catch (SocketException sex)
             {
-                RMLog.Exception(sex, "SocketException in TcpConnection::GetAddrByName().  ErrorCode=" + sex.ErrorCode.ToString());
+                RMLog.DebugException(sex, "SocketException in TcpConnection::GetAddrByName().  ErrorCode=" + sex.ErrorCode.ToString());
                 return IPAddress.None;
             }
             catch (Exception ex)
             {
-                RMLog.Exception(ex, "Exception in TcpConnection::GetAddrByName()");
+                RMLog.DebugException(ex, "Exception in TcpConnection::GetAddrByName()");
                 return IPAddress.None;
             }
         }
@@ -355,12 +355,12 @@ namespace RandM.RMLib
             }
             catch (SocketException sex)
             {
-                RMLog.Exception(sex, "SocketException in TcpConnection::GetHostByIP().  ErrorCode=" + sex.ErrorCode.ToString());
+                RMLog.DebugException(sex, "SocketException in TcpConnection::GetHostByIP().  ErrorCode=" + sex.ErrorCode.ToString());
                 return "";
             }
             catch (Exception ex)
             {
-                RMLog.Exception(ex, "Exception in TcpConnection::GetHostByIP()");
+                RMLog.DebugException(ex, "Exception in TcpConnection::GetHostByIP()");
                 return "";
             }
         }
@@ -373,12 +373,12 @@ namespace RandM.RMLib
             }
             catch (SocketException sex)
             {
-                RMLog.Exception(sex, "SocketException in TcpConnection::GetIPByName().  ErrorCode=" + sex.ErrorCode.ToString());
+                RMLog.DebugException(sex, "SocketException in TcpConnection::GetIPByName().  ErrorCode=" + sex.ErrorCode.ToString());
                 return "";
             }
             catch (Exception ex)
             {
-                RMLog.Exception(ex, "Exception in TcpConnection::GetIPByName()");
+                RMLog.DebugException(ex, "Exception in TcpConnection::GetIPByName()");
                 return "";
             }
         }
@@ -410,12 +410,12 @@ namespace RandM.RMLib
             }
             catch (SocketException sex)
             {
-                RMLog.Exception(sex, "SocketException in TcpConnection::GetLocalIPs().  ErrorCode=" + sex.ErrorCode.ToString());
+                RMLog.DebugException(sex, "SocketException in TcpConnection::GetLocalIPs().  ErrorCode=" + sex.ErrorCode.ToString());
                 return "";
             }
             catch (Exception ex)
             {
-                RMLog.Exception(ex, "Exception in TcpConnection::GetLocalIPs()");
+                RMLog.DebugException(ex, "Exception in TcpConnection::GetLocalIPs()");
                 return "";
             }
         }
@@ -497,7 +497,7 @@ namespace RandM.RMLib
             {
                 IPAddress IPA = ParseIPAddress(ipAddress);
                 _Socket = new Socket(IPA.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-                if (!ProcessUtils.IsRunningOnMono && !OSUtils.IsWinXPOr2003) // From: https://github.com/statianzo/Fleck/blob/master/src/Fleck/WebSocketServer.cs
+                if (!ProcessUtils.IsRunningOnMono && Socket.OSSupportsIPv6) // From: https://github.com/statianzo/Fleck/blob/master/src/Fleck/WebSocketServer.cs
                 {
 #if __MonoCS__
 #else
@@ -514,12 +514,12 @@ namespace RandM.RMLib
             }
             catch (SocketException sex)
             {
-                RMLog.Exception(sex, "SocketException in TcpConnection::Listen().  ErrorCode=" + sex.ErrorCode.ToString());
+                RMLog.DebugException(sex, "SocketException in TcpConnection::Listen().  ErrorCode=" + sex.ErrorCode.ToString());
                 return false;
             }
             catch (Exception ex)
             {
-                RMLog.Exception(ex, "Exception in TcpConnection::Listen()");
+                RMLog.DebugException(ex, "Exception in TcpConnection::Listen()");
                 return false;
             }
         }
@@ -582,18 +582,18 @@ namespace RandM.RMLib
                 }
                 catch (SocketException sex)
                 {
-                    RMLog.Exception(sex, "SocketException in TcpConnection::Open().  ErrorCode=" + sex.ErrorCode.ToString());
+                    RMLog.DebugException(sex, "SocketException in TcpConnection::Open().  ErrorCode=" + sex.ErrorCode.ToString());
                     return false;
                 }
                 catch (Exception ex)
                 {
-                    RMLog.Exception(ex, "Exception in TcpConnection::Open()");
+                    RMLog.DebugException(ex, "Exception in TcpConnection::Open()");
                     return false;
                 }
             }
             else
             {
-                RMLog.Error("MONO cannot open an existing socket handle");
+                RMLog.Debug("MONO cannot open an existing socket handle");
                 return false;
                 //try
                 //{
@@ -617,12 +617,12 @@ namespace RandM.RMLib
                 //}
                 //catch (SocketException sex)
                 //{
-                //    RMLog.Exception(sex, "SocketException in TcpConnection::Open().  ErrorCode=" + sex.ErrorCode.ToString());
+                //    RMLog.DebugException(sex, "SocketException in TcpConnection::Open().  ErrorCode=" + sex.ErrorCode.ToString());
                 //    return false;
                 //}
                 //catch (Exception ex)
                 //{
-                //    RMLog.Exception(ex, "Exception in TcpConnection::Open()");
+                //    RMLog.DebugException(ex, "Exception in TcpConnection::Open()");
                 //    return false;
                 //}
             }
@@ -644,12 +644,12 @@ namespace RandM.RMLib
             }
             catch (SocketException sex)
             {
-                RMLog.Exception(sex, "SocketException in TcpConnection::Open().  ErrorCode=" + sex.ErrorCode.ToString());
+                RMLog.DebugException(sex, "SocketException in TcpConnection::Open().  ErrorCode=" + sex.ErrorCode.ToString());
                 return false;
             }
             catch (Exception ex)
             {
-                RMLog.Exception(ex, "Exception in TcpConnection::Open()");
+                RMLog.DebugException(ex, "Exception in TcpConnection::Open()");
                 return false;
             }
         }
@@ -683,12 +683,12 @@ namespace RandM.RMLib
             }
             catch (SocketException sex)
             {
-                RMLog.Exception(sex, "SocketException in TcpConnection::Open().  ErrorCode=" + sex.ErrorCode.ToString());
+                RMLog.DebugException(sex, "SocketException in TcpConnection::Open().  ErrorCode=" + sex.ErrorCode.ToString());
                 return false;
             }
             catch (Exception ex)
             {
-                RMLog.Exception(ex, "Exception in TcpConnection::Open()");
+                RMLog.DebugException(ex, "Exception in TcpConnection::Open()");
                 return false;
             }
         }
@@ -709,7 +709,7 @@ namespace RandM.RMLib
             if (BindToAll.Contains(ipAddress))
             {
                 // We want to bind to all addresses, so return IPAddress.Any or IPv6Any based on the OS we're running on
-                return OSUtils.IsWinXPOr2003 ? IPAddress.Any : IPAddress.IPv6Any;
+                return Socket.OSSupportsIPv6 ? IPAddress.IPv6Any : IPAddress.Any;
             }
             else
             {
@@ -931,7 +931,7 @@ namespace RandM.RMLib
                 }
                 else
                 {
-                    RMLog.Exception(ioex, "IOException in TcpConnection::ReceiveData()");
+                    RMLog.DebugException(ioex, "IOException in TcpConnection::ReceiveData()");
                 }
                 _Stream.Close();
                 _Socket.Close();
@@ -944,14 +944,14 @@ namespace RandM.RMLib
                 }
                 else
                 {
-                    RMLog.Exception(sex, "SocketException in TcpConnection::ReceiveData().  ErrorCode=" + sex.ErrorCode.ToString());
+                    RMLog.DebugException(sex, "SocketException in TcpConnection::ReceiveData().  ErrorCode=" + sex.ErrorCode.ToString());
                 }
                 _Stream.Close();
                 _Socket.Close();
             }
             catch (Exception ex)
             {
-                RMLog.Exception(ex, "Exception in TcpConnection::ReceiveData()");
+                RMLog.DebugException(ex, "Exception in TcpConnection::ReceiveData()");
                 _Stream.Close();
                 _Socket.Close();
             }
@@ -1011,7 +1011,7 @@ namespace RandM.RMLib
                     }
                     else
                     {
-                        RMLog.Exception(ioex, "IOException in TcpConnection::WriteRaw()");
+                        RMLog.DebugException(ioex, "IOException in TcpConnection::WriteRaw()");
                     }
                     _Stream.Close();
                     _Socket.Close();
@@ -1025,14 +1025,14 @@ namespace RandM.RMLib
                     }
                     else
                     {
-                        RMLog.Exception(sex, "SocketException in TcpConnection::WriteRaw().  ErrorCode=" + sex.ErrorCode.ToString());
+                        RMLog.DebugException(sex, "SocketException in TcpConnection::WriteRaw().  ErrorCode=" + sex.ErrorCode.ToString());
                     }
                     _Stream.Close();
                     _Socket.Close();
                 }
                 catch (Exception ex)
                 {
-                    RMLog.Exception(ex, "Exception in TcpConnection::ReceiveData()");
+                    RMLog.DebugException(ex, "Exception in TcpConnection::ReceiveData()");
                     _Stream.Close();
                     _Socket.Close();
                 }

@@ -1,22 +1,4 @@
 ﻿/*
-  RMLib: Nonvisual support classes used by multiple R&M Software programs
-  Copyright (C) 2008-2014  Rick Parrish, R&M Software
-
-  This file is part of RMLib.
-
-  RMLib is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  any later version.
-
-  RMLib is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with RMLib.  If not, see <http://www.gnu.org/licenses/>.
-
   This code file was originally downloaded from the following article:
   C# Detect Windows OS Version – Part 2 (WMI)
   by Andrew October 7th, 2009
@@ -48,7 +30,7 @@ namespace RandM.RMLib
         /// Gets Operating System Name, Service Pack, and Architecture using WMI with the legacy methods as a fallback
         /// </summary>
         /// <returns>String containing the name of the operating system followed by its service pack (if any) and architecture</returns>
-        static public string GetNameAndVersion()
+        public static string GetNameAndVersion()
         {
             //Variables to hold our return value
             string os = "";
@@ -181,7 +163,7 @@ namespace RandM.RMLib
         /// Gets Operating System Name using .Net's Environment class.
         /// </summary>
         /// <returns>String containing the name of the operating system followed by its service pack (if any)</returns>
-        static private string getOSLegacy()
+        private static string getOSLegacy()
         {
             //Get Operating system information.
             OperatingSystem os = Environment.OSVersion;
@@ -262,7 +244,7 @@ namespace RandM.RMLib
         /// Gets the installed Operating System Service Pack using .Net's Environment class.
         /// </summary>
         /// <returns>String containing the operating system's installed service pack (if any)</returns>
-        static private string getOSServicePackLegacy()
+        private static string getOSServicePackLegacy()
         {
             // Get service pack from Environment Class
             string sp = Environment.OSVersion.ServicePack;
@@ -281,32 +263,32 @@ namespace RandM.RMLib
         /// System is 32- or 64-bit.
         /// </summary>
         /// <returns>Int containing 32 or 64 representing the number of bits in the OS Architecture</returns>
-        static private int getOSArchitectureLegacy()
+        private static int getOSArchitectureLegacy()
         {
             string pa = Environment.GetEnvironmentVariable("PROCESSOR_ARCHITECTURE");
             return ((String.IsNullOrEmpty(pa) || String.Compare(pa, 0, "x86", 0, 3, true) == 0) ? 32 : 64);
         }
 
-        static public bool IsOSX
+        public static bool IsOSX
         {
             get { return Environment.OSVersion.Platform == PlatformID.MacOSX; }
         }
 
-        static public bool IsUnix
+        public static bool IsUnix
         {
             get { return Environment.OSVersion.Platform == PlatformID.Unix; }
         }
 
-        static public bool IsWin2003 {
+        public static bool IsWin2003 {
             get { return IsWinNT && (Environment.OSVersion.Version.Major == 5) && (Environment.OSVersion.Version.Minor == 2); }
         }
 
-        static public bool IsWin9x
+        public static bool IsWin9x
         {
             get { return Environment.OSVersion.Platform == PlatformID.Win32Windows; }
         }
 
-        static public bool IsWindows
+        public static bool IsWindows
         {
             get
             {
@@ -317,18 +299,14 @@ namespace RandM.RMLib
             }
         }
 
-        static public bool IsWinNT
+        public static bool IsWinNT
         {
             get { return Environment.OSVersion.Platform == PlatformID.Win32NT; }
         }
 
-        static public bool IsWinXP
+        public static bool IsWinXP
         {
             get { return IsWinNT && (Environment.OSVersion.Version.Major == 5) && (Environment.OSVersion.Version.Minor == 1); }
-        }
-
-        static public bool IsWinXPOr2003 {
-            get { return IsWinXP || IsWin2003; }
         }
     }
 }
