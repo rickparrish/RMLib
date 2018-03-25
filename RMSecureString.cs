@@ -31,20 +31,11 @@ namespace RandM.RMLib
     public class RMSecureString : IDisposable
     {
         private bool _Disposed = false;
-        private object _SecureString = null;
-        private bool _SecureStringSupported = true;
+        private SecureString _SecureString = null;
 
         public RMSecureString()
         {
-            try
-            {
-                _SecureString = new SecureString();
-            }
-            catch (NotSupportedException)
-            {
-                _SecureStringSupported = false;
-                _SecureString = new StringBuilder();
-            }
+            _SecureString = new SecureString();
         }
 
         ~RMSecureString()
@@ -117,8 +108,9 @@ namespace RandM.RMLib
         {
             if (rhs == null) return null;
 
-            RMSecureString Result = new RMSecureString();
-            Result._SecureString = rhs.Copy();
+            RMSecureString Result = new RMSecureString() {
+                _SecureString = rhs.Copy()
+            };
             return Result;
         }
 
@@ -134,26 +126,12 @@ namespace RandM.RMLib
 
         public void AppendChar(char c)
         {
-            if (_SecureStringSupported)
-            {
-                ((SecureString)_SecureString).AppendChar(c);
-            }
-            else
-            {
-                ((StringBuilder)_SecureString).Append(c);
-            }
+            _SecureString.AppendChar(c);
         }
 
         public void Clear()
         {
-            if (_SecureStringSupported)
-            {
-                ((SecureString)_SecureString).Clear();
-            }
-            else
-            {
-                ((StringBuilder)_SecureString).Length = 0;
-            }
+            _SecureString.Clear();
         }
 
         // Modified from http://social.msdn.microsoft.com/Forums/en-US/clr/thread/555a5cb6-790d-415d-b079-00d62b3a9632/
@@ -175,16 +153,8 @@ namespace RandM.RMLib
 
             try
             {
-                if (_SecureStringSupported)
-                {
-                    bstr1 = Marshal.SecureStringToBSTR((SecureString)_SecureString);
-                    bstr2 = Marshal.SecureStringToBSTR((SecureString)((RMSecureString)rhs)._SecureString);
-                }
-                else
-                {
-                    bstr1 = Marshal.StringToBSTR(((StringBuilder)_SecureString).ToString());
-                    bstr2 = Marshal.StringToBSTR(((StringBuilder)((RMSecureString)rhs)._SecureString).ToString());
-                }
+                bstr1 = Marshal.SecureStringToBSTR(_SecureString);
+                bstr2 = Marshal.SecureStringToBSTR(((RMSecureString)rhs)._SecureString);
 
                 unsafe
                 {
@@ -219,7 +189,7 @@ namespace RandM.RMLib
         /// <returns>A base64 encoded string of the encrypted version of the current SecureString</returns>
         /// <remarks>Based on the code from Sly Gryphon's comment at http://weblogs.asp.net/pglavich/archive/2006/10/29/Secure-TextBox-Updated.aspx </remarks>
         [SuppressMessage("Microsoft.Usage", "CA2202:Do not dispose objects multiple times")]
-        public string GetEncryptedString(RMSecureString password)
+        public string GetEncryptedString(RMSecureString password, int iterations = 32768)
         {
             string Result = "";
 
@@ -229,14 +199,7 @@ namespace RandM.RMLib
             try
             {
                 // Get the secure plaintext string into a memory buffer
-                if (_SecureStringSupported)
-                {
-                    PlainTextPtr = Marshal.SecureStringToGlobalAllocAnsi((SecureString)_SecureString);
-                }
-                else
-                {
-                    PlainTextPtr = Marshal.StringToHGlobalAnsi(((StringBuilder)_SecureString).ToString());
-                }
+                PlainTextPtr = Marshal.SecureStringToGlobalAllocAnsi(_SecureString);
                 int PlainTextSize = this.Length * sizeof(byte);
 
                 // Get the secure password string into a memory buffer
@@ -257,11 +220,22 @@ namespace RandM.RMLib
                                 Marshal.Copy(PlainTextPtr, PlainTextBytes, 0, PlainTextSize);
                                 Marshal.Copy(PasswordPtr, PasswordBytes, 0, PasswordSize);
 
-                                PasswordDeriveBytes DerivedPassword = new PasswordDeriveBytes(PasswordBytes, Encoding.ASCII.GetBytes("RMSecureString"), "SHA512", 12345);
-                                using (RijndaelManaged SymmetricKey = new RijndaelManaged())
-                                {
+                                // Get random bytes for salt
+                                var RNG = new RNGCryptoServiceProvider();
+                                byte[] SaltBytes = new byte[16];
+                                RNG.GetBytes(SaltBytes);
+
+                                // PBKDF2 key stretching
+                                var DerivedPassword = new Rfc2898DeriveBytes(PasswordBytes, SaltBytes, iterations);
+
+                                // Encryption with 128bit AES (using 192 or 256 bit isn't a good idea because Rfc2898DeriveBytes uses SHA-1, a 160 bit algorithm,
+                                // so it's not recommended to take out more than 160 bits (increases time required to hash, but not time required to verify
+                                // a hash, which means a defender does extra work but an attacker doesn't have to...Google it for reasons)
+                                using (RijndaelManaged SymmetricKey = new RijndaelManaged()) {
+                                    SymmetricKey.GenerateIV();
+                                    SymmetricKey.Key = DerivedPassword.GetBytes(16);
                                     SymmetricKey.Mode = CipherMode.CBC;
-                                    using (ICryptoTransform Encryptor = SymmetricKey.CreateEncryptor(DerivedPassword.GetBytes(32), DerivedPassword.GetBytes(16)))
+                                    using (ICryptoTransform Encryptor = SymmetricKey.CreateEncryptor())
                                     {
                                         using (MemoryStream MemStream = new MemoryStream())
                                         {
@@ -270,7 +244,7 @@ namespace RandM.RMLib
                                                 CryptoStream.Write(PlainTextBytes, 0, PlainTextBytes.Length);
                                                 CryptoStream.FlushFinalBlock();
 
-                                                Result = "e" + Convert.ToBase64String(MemStream.ToArray());
+                                                Result = $"e!2!{iterations}!{Convert.ToBase64String(SaltBytes)}!{Convert.ToBase64String(SymmetricKey.IV)}!{Convert.ToBase64String(MemStream.ToArray())}";
                                             }
                                         }
                                     }
@@ -325,14 +299,7 @@ namespace RandM.RMLib
             try
             {
                 // Get the secure string into a memory buffer
-                if (_SecureStringSupported)
-                {
-                    secureStringPtr = Marshal.SecureStringToGlobalAllocAnsi((SecureString)_SecureString);
-                }
-                else
-                {
-                    secureStringPtr = Marshal.StringToHGlobalAnsi(((StringBuilder)_SecureString).ToString());
-                }
+                secureStringPtr = Marshal.SecureStringToGlobalAllocAnsi(_SecureString);
                 int stringSize = (saltBytes.Length + this.Length) * sizeof(byte);
 
                 // Pin the array, copy data in, use it, and then make sure it is clear before unpinning.
@@ -376,25 +343,18 @@ namespace RandM.RMLib
 
         public string GetPlainText()
         {
-            if (_SecureStringSupported)
+            IntPtr unmanagedString = IntPtr.Zero;
+            try
             {
-                IntPtr unmanagedString = IntPtr.Zero;
-                try
-                {
-                    unmanagedString = Marshal.SecureStringToBSTR((SecureString)_SecureString);
-                    return Marshal.PtrToStringAuto(unmanagedString);
-                }
-                finally
-                {
-                    if (unmanagedString != IntPtr.Zero)
-                    {
-                        Marshal.ZeroFreeBSTR(unmanagedString);
-                    }
-                }
+                unmanagedString = Marshal.SecureStringToBSTR(_SecureString);
+                return Marshal.PtrToStringAuto(unmanagedString);
             }
-            else
+            finally
             {
-                return ((StringBuilder)_SecureString).ToString();
+                if (unmanagedString != IntPtr.Zero)
+                {
+                    Marshal.ZeroFreeBSTR(unmanagedString);
+                }
             }
         }
 
@@ -413,14 +373,7 @@ namespace RandM.RMLib
             try
             {
                 // Get the secure plaintext string into a memory buffer
-                if (_SecureStringSupported)
-                {
-                    PlainTextPtr = Marshal.SecureStringToGlobalAllocAnsi((SecureString)_SecureString);
-                }
-                else
-                {
-                    PlainTextPtr = Marshal.StringToHGlobalAnsi(((StringBuilder)_SecureString).ToString());
-                }
+                PlainTextPtr = Marshal.SecureStringToGlobalAllocAnsi(_SecureString);
                 int PlainTextSize = this.Length * sizeof(byte);
 
                 // Get the secure password string into a memory buffer
@@ -482,40 +435,19 @@ namespace RandM.RMLib
 
         public SecureString GetSecureText()
         {
-            if (_SecureStringSupported)
-            {
-                return (SecureString)_SecureString;
-            }
-            else
-            {
-                return null;
-            }
+            return _SecureString;
         }
 
         public void InsertAt(int AIndex, char c)
         {
-            if (_SecureStringSupported)
-            {
-                ((SecureString)_SecureString).InsertAt(AIndex, c);
-            }
-            else
-            {
-                ((StringBuilder)_SecureString).Insert(AIndex, c);
-            }
+            _SecureString.InsertAt(AIndex, c);
         }
 
         public int Length
         {
             get
             {
-                if (_SecureStringSupported)
-                {
-                    return ((SecureString)_SecureString).Length;
-                }
-                else
-                {
-                    return ((StringBuilder)_SecureString).Length;
-                }
+                return _SecureString.Length;
             }
         }
 
@@ -527,6 +459,10 @@ namespace RandM.RMLib
             if (encryptedString.StartsWith("p"))
             {
                 LoadFromProtectedString(encryptedString, password);
+            } 
+            else if (encryptedString.StartsWith("e!2!")) 
+            {
+                LoadFromEncryptedStringv2(encryptedString, password);
             }
             else if (encryptedString.StartsWith("e"))
             {
@@ -567,14 +503,7 @@ namespace RandM.RMLib
                                                 int ByteCount = CryptoStream.Read(DecryptedByte, 0, 1);
                                                 while (ByteCount > 0)
                                                 {
-                                                    if (_SecureStringSupported)
-                                                    {
-                                                        ((SecureString)_SecureString).AppendChar((char)DecryptedByte[0]);
-                                                    }
-                                                    else
-                                                    {
-                                                        ((StringBuilder)_SecureString).Append((char)DecryptedByte[0]);
-                                                    }
+                                                    _SecureString.AppendChar((char)DecryptedByte[0]);
                                                     ByteCount = CryptoStream.Read(DecryptedByte, 0, 1);
                                                 }
                                             }
@@ -598,6 +527,67 @@ namespace RandM.RMLib
                     {
                         Marshal.ZeroFreeGlobalAllocAnsi(PasswordPtr);
                     }
+                }
+            }
+        }
+
+        [SuppressMessage("Microsoft.Usage", "CA2202:Do not dispose objects multiple times")]
+        private void LoadFromEncryptedStringv2(string encryptedString, RMSecureString password) {
+            Clear();
+
+            // encryptedString is in the format e!2!{iterations}!{base64:salt}!{base64:iv}!{base64:encrypted_password}, so split it
+            string[] Pieces = encryptedString.Split('!');
+            int Iterations = int.Parse(Pieces[2]);
+            byte[] SaltBytes = Convert.FromBase64String(Pieces[3]);
+            byte[] IVBytes = Convert.FromBase64String(Pieces[4]);
+            encryptedString = Pieces[5];
+
+            IntPtr PasswordPtr = IntPtr.Zero;
+
+            try {
+                // Get the secure password string into a memory buffer
+                PasswordPtr = Marshal.SecureStringToGlobalAllocAnsi(password.GetSecureText());
+                int PasswordSize = password.Length * sizeof(byte);
+
+                // Pin the array, copy data in, use it, and then make sure it is clear before unpinning.
+                unsafe {
+                    byte[] Decrypted = null;
+                    byte[] PasswordBytes = new byte[PasswordSize];
+                    fixed (byte* ptr = PasswordBytes) {
+                        try {
+                            Marshal.Copy(PasswordPtr, PasswordBytes, 0, PasswordSize);
+
+                            var DerivedPassword = new Rfc2898DeriveBytes(PasswordBytes, SaltBytes, Iterations);
+                            using (RijndaelManaged SymmetricKey = new RijndaelManaged()) {
+                                SymmetricKey.IV = IVBytes;
+                                SymmetricKey.Key = DerivedPassword.GetBytes(16);
+                                SymmetricKey.Mode = CipherMode.CBC;
+                                using (ICryptoTransform Decryptor = SymmetricKey.CreateDecryptor()) {
+                                    using (MemoryStream MemStream = new MemoryStream(Convert.FromBase64String(encryptedString))) {
+                                        using (CryptoStream CryptoStream = new CryptoStream(MemStream, Decryptor, CryptoStreamMode.Read)) {
+                                            byte[] DecryptedByte = new byte[1];
+
+                                            int ByteCount = CryptoStream.Read(DecryptedByte, 0, 1);
+                                            while (ByteCount > 0) {
+                                                _SecureString.AppendChar((char)DecryptedByte[0]);
+                                                ByteCount = CryptoStream.Read(DecryptedByte, 0, 1);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        } finally {
+                            // Ensure managed array is cleared
+                            if (Decrypted != null)
+                                Array.Clear(Decrypted, 0, Decrypted.Length);
+                            Array.Clear(PasswordBytes, 0, PasswordSize);
+                        }
+                    }
+                }
+            } finally {
+                // Ensure unmanaged memory is released.
+                if (PasswordPtr != IntPtr.Zero) {
+                    Marshal.ZeroFreeGlobalAllocAnsi(PasswordPtr);
                 }
             }
         }
@@ -645,14 +635,7 @@ namespace RandM.RMLib
 
                                 for (int i = 0; i < Decrypted.Length; i++)
                                 {
-                                    if (_SecureStringSupported)
-                                    {
-                                        ((SecureString)_SecureString).AppendChar((char)Decrypted[i]);
-                                    }
-                                    else
-                                    {
-                                        ((StringBuilder)_SecureString).Append((char)Decrypted[i]);
-                                    }
+                                    _SecureString.AppendChar((char)Decrypted[i]);
                                 }
                             }
                             finally
@@ -677,27 +660,12 @@ namespace RandM.RMLib
 
         public void RemoveAt(int index)
         {
-            if (_SecureStringSupported)
-            {
-                ((SecureString)_SecureString).RemoveAt(index);
-            }
-            else
-            {
-                ((StringBuilder)_SecureString).Remove(index, 1);
-            }
+            _SecureString.RemoveAt(index);
         }
 
         public void SetAt(int index, char c)
         {
-            if (_SecureStringSupported)
-            {
-                ((SecureString)_SecureString).SetAt(index, c);
-            }
-            else
-            {
-                InsertAt(index, c);
-                RemoveAt(index + 1);
-            }
+            _SecureString.SetAt(index, c);
         }
     }
 }
