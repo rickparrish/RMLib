@@ -147,14 +147,15 @@ namespace RandM.RMLib
             string NullByte = ReadLn("\0", 5000);
             if (ReadTimedOut) return false;
 
-            ClientUserName = ReadLn("\0", 5000);
+            ClientUserName = ReadLn("\0", 1000);
             if (ReadTimedOut) return false;
             
-            ServerUserName = ReadLn("\0", 5000);
+            ServerUserName = ReadLn("\0", 1000);
             if (ReadTimedOut) return false;
             
-            TerminalType = ReadLn("\0", 5000);
-            if (ReadTimedOut) return false;
+            TerminalType = ReadLn("\0", 1000);
+            // TODOX SyncTerm doesn't always send final \0, so we'll ignore a read timeout for now
+            // if (ReadTimedOut) return false;
 
             Write("\0");
 
