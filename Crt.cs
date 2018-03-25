@@ -1054,9 +1054,10 @@ namespace RandM.RMLib
         /// <returns>Returns a character or an extended scan code.</returns>
         public static char ReadKey()
         {
+            while (!KeyPressed()) Delay(1);
+
             lock (_Lock)
             {
-                while (!KeyPressed()) Delay(1);
                 return _KeyBuf.Dequeue();
             }
         }
@@ -1067,33 +1068,30 @@ namespace RandM.RMLib
         /// <returns>Returns a string of text</returns>
         public static void ReadLn(out string text)
         {
-            lock (_Lock)
+            // TODO This needs a lot of work
+
+            text = "";
+
+            char Ch = ReadKey();
+            while (Ch != '\r')
             {
-                // TODO This needs a lot of work
-
-                text = "";
-
-                char Ch = ReadKey();
-                while (Ch != '\r')
+                if (Ch == '\b')
                 {
-                    if (Ch == '\b')
+                    if (text.Length > 0)
                     {
-                        if (text.Length > 0)
-                        {
-                            Write("\b \b");
-                            text = text.Substring(0, text.Length - 1);
-                        }
+                        Write("\b \b");
+                        text = text.Substring(0, text.Length - 1);
                     }
-                    else if (((byte)Ch >= 32) && ((byte)Ch <= 126))
-                    {
-                        Write(Ch.ToString());
-                        text += Ch;
-                    }
-
-                    Ch = ReadKey();
                 }
-                WriteLn();
+                else if (((byte)Ch >= 32) && ((byte)Ch <= 126))
+                {
+                    Write(Ch.ToString());
+                    text += Ch;
+                }
+
+                Ch = ReadKey();
             }
+            WriteLn();
         }
 
         public static void RestoreScreen(NativeMethods.CHAR_INFO[] buffer, int left, int top, int right, int bottom)
