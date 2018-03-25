@@ -563,9 +563,10 @@ namespace RandM.RMLib
                     SocketPermission SP = new SocketPermission(System.Security.Permissions.PermissionState.Unrestricted);
                     SP.Demand();
 
-                    SocketInformation SI = new SocketInformation();
-                    SI.Options = SocketInformationOptions.Connected;
-                    SI.ProtocolInformation = new byte[Marshal.SizeOf(typeof(NativeMethods.WSAPROTOCOL_INFO))];
+                    SocketInformation SI = new SocketInformation() {
+                        Options = SocketInformationOptions.Connected,
+                        ProtocolInformation = new byte[Marshal.SizeOf(typeof(NativeMethods.WSAPROTOCOL_INFO))],
+                    };
 
                     Result = SocketError.Success;
                     unsafe
@@ -632,13 +633,14 @@ namespace RandM.RMLib
         {
             try
             {
-                SocketInformation SI = new SocketInformation();
-                SI.ProtocolInformation = socketInformationBytes;
-                SI.Options = new SocketInformationOptions();
-                SI.Options = SocketInformationOptions.Connected;
+                SocketInformation SI = new SocketInformation() { 
+                    ProtocolInformation = socketInformationBytes,
+                    Options = SocketInformationOptions.Connected,
+                };
 
-                _Socket = new Socket(SI);
-                _Socket.Blocking = true;
+                _Socket = new Socket(SI) { 
+                    Blocking = true,
+                };
                 if (_Socket.Connected) _Stream = new NetworkStream(_Socket);
                 return _Socket.Connected;
             }

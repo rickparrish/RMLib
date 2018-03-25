@@ -55,13 +55,16 @@ namespace RandM.RMLib
 
         public virtual void Pause()
         {
-            _Paused = !_Paused;
+            _Paused = true;
         }
 
         public virtual void RaiseFinishEvent()
         {
-            EventHandler LocalHandler = FinishEvent;
-            if (LocalHandler != null) LocalHandler(this, EventArgs.Empty);
+            FinishEvent?.Invoke(this, EventArgs.Empty);
+        }
+
+        public virtual void Resume() {
+            _Paused = false;
         }
 
         public virtual void Start()

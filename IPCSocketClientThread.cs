@@ -145,26 +145,22 @@ namespace RandM.RMLib
 
         private void RaiseErrorMessageEvent(string message)
         {
-            EventHandler<StringEventArgs> Handler = ErrorMessageEvent;
-            if (Handler != null) Handler(this, new StringEventArgs(message));
+            ErrorMessageEvent?.Invoke(this, new StringEventArgs(message));
         }
 
         private void RaiseExceptionEvent(string message, Exception exception)
         {
-            EventHandler<ExceptionEventArgs> Handler = ExceptionEvent;
-            if (Handler != null) Handler(this, new ExceptionEventArgs(message, exception));
+            ExceptionEvent?.Invoke(this, new ExceptionEventArgs(message, exception));
         }
 
         private void RaiseMessageEvent(string message)
         {
-            EventHandler<StringEventArgs> Handler = MessageEvent;
-            if (Handler != null) Handler(this, new StringEventArgs(message));
+            MessageEvent?.Invoke(this, new StringEventArgs(message));
         }
 
         private void RaiseServerMessageEvent(string message)
         {
-            EventHandler<StringEventArgs> Handler = ServerMessageEvent;
-            if (Handler != null) Handler(this, new StringEventArgs(message));
+            ServerMessageEvent?.Invoke(this, new StringEventArgs(message));
         }
 
         public void SendCommand(string command)
