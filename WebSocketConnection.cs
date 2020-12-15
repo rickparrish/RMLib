@@ -473,7 +473,7 @@ namespace RandM.RMLib
                             _Stream = SSL;
                             try
                             {
-                                SSL.AuthenticateAsServer(_Certificate, false, SslProtocols.Tls, false);
+                                SSL.AuthenticateAsServer(_Certificate, false, SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12, false);
                             }
                             catch (Exception ex)
                             {

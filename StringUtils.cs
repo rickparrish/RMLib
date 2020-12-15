@@ -322,5 +322,23 @@ namespace RandM.RMLib
             long Result = 0;
             return (long.TryParse(text.Replace(",", ""), out Result)) ? Result : defaultValue; // TODOX Some cultures use . as thousands separator
         }
+
+		// FROM: https://gist.github.com/anderssonjohan/660952
+        public static string[] WordWrap(string text, int maxLineLength) {
+            var list = new List<string>();
+
+            int currentIndex;
+            var lastWrap = 0;
+            var whitespace = new[] { ' ', '\r', '\n', '\t' };
+            do {
+                currentIndex = lastWrap + maxLineLength > text.Length ? text.Length : (text.LastIndexOfAny(new[] { ' ', ',', '.', '?', '!', ':', ';', '-', '\n', '\r', '\t' }, Math.Min(text.Length - 1, lastWrap + maxLineLength)) + 1);
+                if (currentIndex <= lastWrap)
+                    currentIndex = Math.Min(lastWrap + maxLineLength, text.Length);
+                list.Add(text.Substring(lastWrap, currentIndex - lastWrap).Trim(whitespace));
+                lastWrap = currentIndex;
+            } while (currentIndex < text.Length);
+
+            return list.ToArray();
+        }
     }
 }
