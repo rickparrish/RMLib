@@ -56,7 +56,6 @@ namespace RandM.RMLib
         private long _FramePayloadLength = 0;
         private int _FramePayloadReceived = 0;
         private StringDictionary _Header = new StringDictionary();
-        private ProtocolVersion _ProtocolVersion = ProtocolVersion.None;
         private byte[] _QueuedBytes = null;
         private bool _Shake = true;
         private bool _Shook = false;
@@ -72,9 +71,11 @@ namespace RandM.RMLib
             _Shook = !shake;
             _Certificate = certificate;
 
+            ClientProtocols = null;
             FlashPolicyFileRequest = false;
             Protocol = "ws";
             SubProtocol = "plain";
+            Version = ProtocolVersion.None;
         }
 
         private int CalculateWebSocketKey(string text)
@@ -99,6 +100,8 @@ namespace RandM.RMLib
             return (int)(Convert.ToInt64(Digits) / Spaces);
         }
 
+        public string ClientProtocols { get; set; }
+
         public bool FlashPolicyFileRequest { get; set; }
 
         public StringDictionary Header { get { return _Header; } }
@@ -114,7 +117,7 @@ namespace RandM.RMLib
         {
             if (_Shook)
             {
-                switch (_ProtocolVersion)
+                switch (Version)
                 {
                     case ProtocolVersion.Hixie76:
                         NegotiateInboundHixie76(data, numberOfBytes);
@@ -338,7 +341,7 @@ namespace RandM.RMLib
         {
             if (_Shook)
             {
-                switch (_ProtocolVersion)
+                switch (Version)
                 {
                     case ProtocolVersion.Hixie76:
                         NegotiateOutboundHixie76(data, numberOfBytes);
@@ -521,19 +524,19 @@ namespace RandM.RMLib
                             case "0":
                                 if (_Header.ContainsKey("Sec-WebSocket-Key1"))
                                 {
-                                    _ProtocolVersion = ProtocolVersion.Hixie76;
+                                    Version = ProtocolVersion.Hixie76;
                                     return ShakeHandsHixie76();
                                 }
                                 else
                                 {
                                     // Only used by Chrome 4 and iOS 5.0.0 so probably not worth bothering
-                                    _ProtocolVersion = ProtocolVersion.Hixie75;
+                                    Version = ProtocolVersion.Hixie75;
                                     return false;
                                 }
                             case "7":
                             case "8":
                             case "13":
-                                _ProtocolVersion = ProtocolVersion.RFC6455;
+                                Version = ProtocolVersion.RFC6455;
                                 return ShakeHandsRFC6455();
                             default:
                                 //		    TODO If this version does not
@@ -596,7 +599,8 @@ namespace RandM.RMLib
                     else if (InLine.StartsWith("Sec-WebSocket-Protocol:"))
                     {
                         // Example: "Sec-WebSocket-Protocol: sample"
-                        _Header["SubProtocol"] = InLine.Replace("Sec-WebSocket-Protocol:", "").Trim();
+                        ClientProtocols = InLine.Replace("Sec-WebSocket-Protocol:", "").Trim();
+                        _Header["SubProtocol"] = ClientProtocols;
                     }
                     else if (InLine.StartsWith("Sec-WebSocket-Draft"))
                     {
@@ -719,6 +723,8 @@ namespace RandM.RMLib
         }
 
         public string SubProtocol { get; set; }
+
+        public ProtocolVersion Version { get; set; }
     }
 
     /// <summary>
