@@ -36,8 +36,8 @@ namespace RandM.RMLib
 {
     public enum GetExternalIPv4Methods
     {
-        Http80 = 0,
-        Http8880 = 1,
+        Http = 0,
+        Https = 1,
         NatPmp = 2,
         UnicastAddress = 3,
         Upnp = 4
@@ -134,11 +134,11 @@ namespace RandM.RMLib
                 {
                     switch (method)
                     {
-                        case GetExternalIPv4Methods.Http80:
-                            Result = GetExternalIPv4ByHttp(80);
+                        case GetExternalIPv4Methods.Http:
+                            Result = GetExternalIPv4ByHttp("http");
                             break;
-                        case GetExternalIPv4Methods.Http8880:
-                            Result = GetExternalIPv4ByHttp(8880);
+                        case GetExternalIPv4Methods.Https:
+                            Result = GetExternalIPv4ByHttp("https");
                             break;
                         case GetExternalIPv4Methods.NatPmp:
                             Result = GetExternalIPv4ByNatPmp();
@@ -161,12 +161,14 @@ namespace RandM.RMLib
             return Result;
         }
 
-        public static IPAddress GetExternalIPv4ByHttp(int port)
+        public static IPAddress GetExternalIPv4ByHttp(string scheme)
         {
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
+
             using (RMWebClient WC = new RMWebClient())
             {
                 WC.Timeout = 5000;
-                string IP = WC.DownloadString("http://myip.randm.ca:" + port.ToString() + "/whats-my-ip.php");
+                string IP = WC.DownloadString($"{scheme}://text.ipv4.wtfismyip.com").Trim();
 
                 // Return if it's valid
                 IPAddress Result = IPAddress.None;
