@@ -208,7 +208,7 @@ namespace RandM.RMLib
                             case "SByte[]": Property.SetValue(this, Ini.ReadSByte(sectionName, Property.Name, (IList)Property.GetValue(this, null)), null); break;
                             case "Single": Property.SetValue(this, Ini.ReadSingle(sectionName, Property.Name, (Single)Property.GetValue(this, null)), null); break;
                             case "Single[]": Property.SetValue(this, Ini.ReadSingle(sectionName, Property.Name, (IList)Property.GetValue(this, null)), null); break;
-                            case "String": Property.SetValue(this, Ini.ReadString(sectionName, Property.Name, Property.GetValue(this, null).ToString()), null); break;
+                            case "String": Property.SetValue(this, Ini.ReadString(sectionName, Property.Name, Property.GetValue(this, null)?.ToString()), null); break;
                             case "String[]": Property.SetValue(this, Ini.ReadString(sectionName, Property.Name, (IList)Property.GetValue(this, null)), null); break;
                             case "UInt16": Property.SetValue(this, Ini.ReadUInt16(sectionName, Property.Name, (UInt16)Property.GetValue(this, null)), null); break;
                             case "UInt16[]": Property.SetValue(this, Ini.ReadUInt16(sectionName, Property.Name, (IList)Property.GetValue(this, null)), null); break;
