@@ -385,7 +385,7 @@ namespace RandM.RMLib
 
         public string GetLocalHost()
         {
-            if (_LocalHost == "") { _LocalHost = GetHostByIP(_LocalIP); }
+            if (string.IsNullOrWhiteSpace(_LocalHost)) { _LocalHost = GetHostByIP(_LocalIP); }
             return _LocalHost;
         }
 
@@ -427,7 +427,7 @@ namespace RandM.RMLib
 
         public string GetRemoteHost()
         {
-            if (_RemoteHost == "") { _RemoteHost = GetHostByIP(_RemoteIP); }
+            if (string.IsNullOrWhiteSpace(_RemoteHost)) { _RemoteHost = GetHostByIP(_RemoteIP); }
             return _RemoteHost;
         }
 
