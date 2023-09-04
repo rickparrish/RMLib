@@ -52,9 +52,10 @@ namespace RandM.RMLib
 
         private X509Certificate2 _Certificate = null;
         private byte[] _FrameMask = null;
+        private bool _FrameMasked = false;
         private int _FrameOpCode = 0;
-        private long _FramePayloadLength = 0;
-        private int _FramePayloadReceived = 0;
+        private ulong _FramePayloadLength = 0;
+        private ulong _FramePayloadReceived = 0;
         private StringDictionary _Header = new StringDictionary();
         private byte[] _QueuedBytes = null;
         private bool _Shake = true;
@@ -183,6 +184,7 @@ namespace RandM.RMLib
                                 else
                                 {
                                     _QueuedBytes = new byte[] { data[i] };
+                                    return;
                                 }
                             }
                             else
@@ -195,10 +197,12 @@ namespace RandM.RMLib
                                 else if (i < (numberOfBytes - 1))
                                 {
                                     _QueuedBytes = new byte[] { data[i], data[++i] };
+                                    return;
                                 }
                                 else
                                 {
                                     _QueuedBytes = new byte[] { data[i] };
+                                    return;
                                 }
                             }
                         }
@@ -226,31 +230,62 @@ namespace RandM.RMLib
                 {
                     case WebSocketNegotiationState.NeedPacketStart:
                         // Next byte will give us the opcode, and also tell is if the message is fragmented
+                        _FrameOpCode = data[i] & 0x0F;
+                        switch (_FrameOpCode) {
+                            case 0: // Continuation frame
+                            case 1: // Text frame
+                                break;
+
+                            case 2: // Binary frame
+                                RMLog.Error("Client sent a binary frame, which is unsupported");
+                                Close();
+                                return;
+
+                            case 8: // Close frame
+                                RMLog.Debug("Client sent a close frame");
+                                Close();
+                                return;
+
+                            case 9: // Ping frame
+                                RMLog.Debug("Client sent a ping frame");
+                                // TODOZ Protocol says to respond with a pong frame
+                                break;
+
+                            case 10: // Pong frame
+                                RMLog.Debug("Client sent a pong frame");
+                                break;
+
+                            default: // Reserved or unknown frame
+                                RMLog.Error($"Client sent a reserved/unknown frame: {_FrameOpCode}");
+                                Close();
+                                return;
+                        }
+
+                        // If we get here, we weant to move on to the next state
                         _FrameMask = new byte[4];
-                        _FrameOpCode = data[i];
+                        _FrameMasked = false;
                         _FramePayloadLength = 0;
                         _FramePayloadReceived = 0;
                         _State = WebSocketNegotiationState.NeedPayloadLength;
                         break;
                     case WebSocketNegotiationState.NeedPayloadLength:
-                        _FramePayloadLength = (data[i] & 0x7F);
-                        if (_FramePayloadLength <= 125)
-                        {
-                            _State = WebSocketNegotiationState.NeedMaskingKey;
-                        }
-                        else if (_FramePayloadLength == 126)
+                        _FrameMasked = (data[i] & 0x80) == 128;
+
+                        _FramePayloadLength = (ulong)(data[i] & 0x7F);
+                        if (_FramePayloadLength == 126)
                         {
                             if (i < (numberOfBytes - 2))
                             {
                                 byte[] Bytes = new byte[] { data[++i], data[++i] };
-                                _FramePayloadLength = BitConverter.ToInt16(Bytes, 0);
-                                _State = WebSocketNegotiationState.NeedMaskingKey;
+                                Array.Reverse(Bytes); // Payload length is sent big endian, BitConverter expects little endian
+                                _FramePayloadLength = BitConverter.ToUInt16(Bytes, 0);
                             }
                             else
                             {
                                 List<byte> LeftoverBytes = new List<byte>();
                                 while (i < numberOfBytes) LeftoverBytes.Add(data[i++]);
                                 _QueuedBytes = LeftoverBytes.ToArray();
+                                return;
                             }
                         }
                         else if (_FramePayloadLength == 127)
@@ -258,76 +293,64 @@ namespace RandM.RMLib
                             if (i < (numberOfBytes - 8))
                             {
                                 byte[] Bytes = new byte[] { data[++i], data[++i], data[++i], data[++i], data[++i], data[++i], data[++i], data[++i] };
-                                _FramePayloadLength = BitConverter.ToInt64(Bytes, 0);
-                                _State = WebSocketNegotiationState.NeedMaskingKey;
+                                Array.Reverse(Bytes); // Payload length is sent big endian, BitConverter expects little endian
+                                _FramePayloadLength = BitConverter.ToUInt64(Bytes, 0);
                             }
                             else
                             {
                                 List<byte> LeftoverBytes = new List<byte>();
                                 while (i < numberOfBytes) LeftoverBytes.Add(data[i++]);
                                 _QueuedBytes = LeftoverBytes.ToArray();
+                                return;
                             }
+                        }
+
+                        if (_FrameMasked) {
+                            _State = WebSocketNegotiationState.NeedMaskingKey;
+                        } else {
+                            // NB: Might not be any data to read, so check for payload length before setting state
+                            _State = _FramePayloadLength > 0 ? WebSocketNegotiationState.Data : WebSocketNegotiationState.NeedPacketStart; 
                         }
                         break;
                     case WebSocketNegotiationState.NeedMaskingKey:
                         if (i < (numberOfBytes - 3))
                         {
                             byte[] Bytes = new byte[] { data[i], data[++i], data[++i], data[++i] };
-                            int TempMask = BitConverter.ToInt32(Bytes, 0);
+                            uint TempMask = BitConverter.ToUInt32(Bytes, 0);
                             _FrameMask[3] = (byte)((TempMask & 0xFF000000) >> 24);
                             _FrameMask[2] = (byte)((TempMask & 0x00FF0000) >> 16);
                             _FrameMask[1] = (byte)((TempMask & 0x0000FF00) >> 8);
                             _FrameMask[0] = (byte)(TempMask & 0x000000FF);
-                            _State = (_FramePayloadLength > 0) ? WebSocketNegotiationState.Data : WebSocketNegotiationState.NeedPacketStart;
+
+                            // NB: Might not be any data to read, so check for payload length before setting state
+                            _State = _FramePayloadLength > 0 ? WebSocketNegotiationState.Data : WebSocketNegotiationState.NeedPacketStart;
                         }
                         else
                         {
                             List<byte> LeftoverBytes = new List<byte>();
                             while (i < numberOfBytes) LeftoverBytes.Add(data[i++]);
                             _QueuedBytes = LeftoverBytes.ToArray();
+                            return;
                         }
                         break;
                     case WebSocketNegotiationState.Data:
-                        byte UnMaskedByte = (byte)(data[i] ^ _FrameMask[_FramePayloadReceived++ % 4]);
+                        byte InByte = _FrameMasked ? (byte)(data[i] ^ _FrameMask[_FramePayloadReceived++ % 4]) : data[i];
 
                         // Check if the byte needs to be UTF-8 decoded
-                        if (UnMaskedByte < 128)
-                        {
-                            AddToInputQueue(UnMaskedByte);
-                        }
-                        else if ((UnMaskedByte > 191) && (UnMaskedByte < 224))
-                        {
+                        if ((InByte & 0x80) == 0) {
+                            AddToInputQueue(InByte);
+                        } else if ((InByte & 0xE0) == 0xC0) {
                             // Handle UTF-8 decode
-                            if (i < (numberOfBytes - 1))
-                            {
-                                byte UnMaskedByte2 = (byte)(data[++i] ^ _FrameMask[_FramePayloadReceived++ % 4]);
-                                AddToInputQueue((byte)(((UnMaskedByte & 31) << 6) | (UnMaskedByte2 & 63)));
-                            }
-                            else
-                            {
+                            if (i < (numberOfBytes - 1)) {
+                                byte InByte2 = _FrameMasked ? (byte)(data[++i] ^ _FrameMask[_FramePayloadReceived++ % 4]) : data[++i];
+                                AddToInputQueue((byte)(((InByte & 31) << 6) | (InByte2 & 63)));
+                            } else {
                                 _QueuedBytes = new byte[] { data[i] };
                                 _FramePayloadReceived -= 1; // Roll back how much we've received so the masking isn't broken
+                                return;
                             }
-                        }
-                        else
-                        {
-                            // Handle UTF-8 decode (should never need this, but included anyway)
-                            if (i < (numberOfBytes - 2))
-                            {
-                                byte UnMaskedByte2 = (byte)(data[++i] ^ _FrameMask[_FramePayloadReceived++ % 4]);
-                                byte UnMaskedByte3 = (byte)(data[++i] ^ _FrameMask[_FramePayloadReceived++ % 4]);
-                                AddToInputQueue((byte)(((UnMaskedByte & 15) << 12) | ((UnMaskedByte2 & 63) << 6) | (UnMaskedByte3 & 63)));
-                            }
-                            else if (i < (numberOfBytes - 1))
-                            {
-                                _QueuedBytes = new byte[] { data[i], data[++i] };
-                                _FramePayloadReceived -= 2; // Roll back how much we've received so the masking isn't broken
-                            }
-                            else
-                            {
-                                _QueuedBytes = new byte[] { data[i] };
-                                _FramePayloadReceived -= 1; // Roll back how much we've received so the masking isn't broken
-                            }
+                        } else {
+                            RMLog.Debug($"NegotiateInboundRFC6455 Byte out of range: {InByte}");
                         }
 
                         // Check if we've received the full payload
@@ -571,6 +594,11 @@ namespace RandM.RMLib
                         // Example: "Origin: http://example.com"
                         // NB: Not used in protocol 8+
                         _Header["Origin"] = InLine.Replace("Origin:", "").Trim();
+                    }
+                    else if (InLine.StartsWith("Referer:"))
+                    {
+                        // Example: "Referer: http://example.com"
+                        _Header["Referer"] = InLine.Replace("Referer:", "").Trim();
                     }
                     else if (InLine.StartsWith("Sec-WebSocket-Key:"))
                     {
