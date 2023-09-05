@@ -143,7 +143,7 @@ namespace RandM.RMLib
             {
                 MemoryStream MS = new MemoryStream();
                 MS.Write(_QueuedBytes, 0, _QueuedBytes.Length);
-                MS.Write(data, 0, data.Length);
+                MS.Write(data, 0, numberOfBytes);
                 data = MS.ToArray();
                 numberOfBytes = data.Length;
                 _QueuedBytes = null;
@@ -217,7 +217,7 @@ namespace RandM.RMLib
             {
                 MemoryStream MS = new MemoryStream();
                 MS.Write(_QueuedBytes, 0, _QueuedBytes.Length);
-                MS.Write(data, 0, data.Length);
+                MS.Write(data, 0, numberOfBytes);
                 data = MS.ToArray();
                 numberOfBytes = data.Length;
                 _QueuedBytes = null;
