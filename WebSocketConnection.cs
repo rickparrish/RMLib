@@ -348,12 +348,16 @@ namespace RandM.RMLib
                                     return;
                                 }
                             } else {
-                                RMLog.Debug($"NegotiateInboundRFC6455 Byte out of range: {InByte}");
+                                RMLog.Error($"NegotiateInboundRFC6455 Byte out of range: {InByte}");
+                                Close();
+                                return;
                             }
                         } else if (_FrameType == WebSocketFrameType.Binary) {
                             AddToInputQueue(InByte);
                         } else {
                             RMLog.Error($"Invalid frame type: {_FrameType}");
+                            Close();
+                            return;
                         }
 
                         // Check if we've received the full payload
