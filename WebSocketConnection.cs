@@ -21,19 +21,16 @@
   I did not record where I got them from, so I can't properly acknowledge the original source.
 */
 using System;
-using System.Net.Sockets;
-using System.Text;
-using System.Diagnostics;
-using System.Collections.Specialized;
-using System.Text.RegularExpressions;
-using System.Security.Cryptography;
-using System.Collections.Generic;
 using System.Collections;
+using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.IO;
-using System.Threading;
 using System.Net.Security;
+using System.Net.Sockets;
 using System.Security.Authentication;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 
 namespace RandM.RMLib
 {
@@ -56,6 +53,7 @@ namespace RandM.RMLib
         private int _FrameOpCode = 0;
         private ulong _FramePayloadLength = 0;
         private ulong _FramePayloadReceived = 0;
+        private WebSocketFrameType _FrameType = WebSocketFrameType.Unknown;
         private StringDictionary _Header = new StringDictionary();
         private byte[] _QueuedBytes = null;
         private bool _Shake = true;
@@ -75,7 +73,7 @@ namespace RandM.RMLib
             ClientProtocols = null;
             FlashPolicyFileRequest = false;
             Protocol = "ws";
-            SubProtocol = "plain";
+            SubProtocol = "";
             Version = ProtocolVersion.None;
         }
 
@@ -232,14 +230,13 @@ namespace RandM.RMLib
                         // Next byte will give us the opcode, and also tell is if the message is fragmented
                         _FrameOpCode = data[i] & 0x0F;
                         switch (_FrameOpCode) {
-                            case 0: // Continuation frame
-                            case 1: // Text frame
+                            case 0: // Continuation frame, keep same frame type as previous frame
                                 break;
 
+                            case 1: // Text frame
                             case 2: // Binary frame
-                                RMLog.Error("Client sent a binary frame, which is unsupported");
-                                Close();
-                                return;
+                                _FrameType = (WebSocketFrameType)_FrameOpCode;
+                                break;
 
                             case 8: // Close frame
                                 RMLog.Debug("Client sent a close frame");
@@ -336,21 +333,27 @@ namespace RandM.RMLib
                     case WebSocketNegotiationState.Data:
                         byte InByte = _FrameMasked ? (byte)(data[i] ^ _FrameMask[_FramePayloadReceived++ % 4]) : data[i];
 
-                        // Check if the byte needs to be UTF-8 decoded
-                        if ((InByte & 0x80) == 0) {
-                            AddToInputQueue(InByte);
-                        } else if ((InByte & 0xE0) == 0xC0) {
-                            // Handle UTF-8 decode
-                            if (i < (numberOfBytes - 1)) {
-                                byte InByte2 = _FrameMasked ? (byte)(data[++i] ^ _FrameMask[_FramePayloadReceived++ % 4]) : data[++i];
-                                AddToInputQueue((byte)(((InByte & 31) << 6) | (InByte2 & 63)));
+                        if (_FrameType == WebSocketFrameType.Text) {
+                            // Check if the byte needs to be UTF-8 decoded
+                            if ((InByte & 0x80) == 0) {
+                                AddToInputQueue(InByte);
+                            } else if ((InByte & 0xE0) == 0xC0) {
+                                // Handle UTF-8 decode
+                                if (i < (numberOfBytes - 1)) {
+                                    byte InByte2 = _FrameMasked ? (byte)(data[++i] ^ _FrameMask[_FramePayloadReceived++ % 4]) : data[++i];
+                                    AddToInputQueue((byte)(((InByte & 31) << 6) | (InByte2 & 63)));
+                                } else {
+                                    _QueuedBytes = new byte[] { data[i] };
+                                    _FramePayloadReceived -= 1; // Roll back how much we've received so the masking isn't broken
+                                    return;
+                                }
                             } else {
-                                _QueuedBytes = new byte[] { data[i] };
-                                _FramePayloadReceived -= 1; // Roll back how much we've received so the masking isn't broken
-                                return;
+                                RMLog.Debug($"NegotiateInboundRFC6455 Byte out of range: {InByte}");
                             }
+                        } else if (_FrameType == WebSocketFrameType.Binary) {
+                            AddToInputQueue(InByte);
                         } else {
-                            RMLog.Debug($"NegotiateInboundRFC6455 Byte out of range: {InByte}");
+                            RMLog.Error($"Invalid frame type: {_FrameType}");
                         }
 
                         // Check if we've received the full payload
@@ -408,22 +411,29 @@ namespace RandM.RMLib
         {
             List<byte> ToSend = new List<byte>();
 
-            for (int i = 0; i < numberOfBytes; i++)
-            {
-                // Check if the byte needs to be UTF-8 encoded
-                if (data[i] < 128)
-                {
+            if (SubProtocol == "binary") {
+                for (int i = 0; i < numberOfBytes; i++) {
                     ToSend.Add(data[i]);
                 }
-                else
+                _OutputBuffer.Enqueue(0x82);
+            } else { 
+                for (int i = 0; i < numberOfBytes; i++)
                 {
-                    // Handle UTF-8 encode
-                    ToSend.Add((byte)((data[i] >> 6) | 192));
-                    ToSend.Add((byte)((data[i] & 63) | 128));
+                    // Check if the byte needs to be UTF-8 encoded
+                    if (data[i] < 128)
+                    {
+                        ToSend.Add(data[i]);
+                    }
+                    else
+                    {
+                        // Handle UTF-8 encode
+                        ToSend.Add((byte)((data[i] >> 6) | 192));
+                        ToSend.Add((byte)((data[i] & 63) | 128));
+                    }
                 }
+                _OutputBuffer.Enqueue(0x81);
             }
 
-            _OutputBuffer.Enqueue(0x81);
             if (ToSend.Count <= 125)
             {
                 _OutputBuffer.Enqueue((byte)ToSend.Count);
@@ -733,7 +743,19 @@ namespace RandM.RMLib
                                "Upgrade: websocket\r\n" +
                                "Connection: Upgrade\r\n" +
                                "Sec-WebSocket-Accept: " + Encoded + "\r\n";
-                if (_Header.ContainsKey("SubProtocol")) Response += "Sec-WebSocket-Protocol: plain\r\n"; // Only sub-protocol we support
+                if (_Header.ContainsKey("SubProtocol")) {
+                    if (_Header["SubProtocol"].Contains("binary")) {
+                        SubProtocol = "binary";
+                    } else if (_Header["SubProtocol"].Contains("plain")) {
+                        SubProtocol = "plain";
+                    } else {
+                        RMLog.Error("No supported SubProtocols found ('binary' and 'plain' are only supported options");
+                        return false;
+                    }
+
+                    RMLog.Debug($"Selecting '{SubProtocol}' SubProtocol");
+                    Response += $"Sec-WebSocket-Protocol: {SubProtocol}\r\n";
+                }
                 Response += "\r\n";
 
                 // Send the response and return
@@ -753,6 +775,15 @@ namespace RandM.RMLib
         public string SubProtocol { get; set; }
 
         public ProtocolVersion Version { get; set; }
+    }
+
+    /// <summary>
+    /// The websocket frame types (that we care about)
+    /// </summary>
+    public enum WebSocketFrameType {
+        Unknown = 0,
+        Text = 1,
+        Binary = 2,
     }
 
     /// <summary>
