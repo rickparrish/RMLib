@@ -532,6 +532,9 @@ namespace RandM.RMLib
                             catch (Exception ex)
                             {
                                 RMLog.Debug("Error during SSL.AuthenticateAsServer(): " + ex.Message);
+                                if (ex.InnerException != null) {
+                                    RMLog.Debug(" -> Inner Exception: " + ex.InnerException.Message);
+                                }
                                 return false;
                             }
                             Protocol = "wss";
