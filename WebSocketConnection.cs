@@ -410,11 +410,11 @@ namespace RandM.RMLib
         protected void NegotiateOutboundRFC6455(byte[] data, int numberOfBytes)
         {
             List<byte> ToSend = new List<byte>();
+            int ToSendCount = 0;
 
             if (SubProtocol == "binary") {
-                for (int i = 0; i < numberOfBytes; i++) {
-                    ToSend.Add(data[i]);
-                }
+                // Don't add to ToSend here, we can write directly from data to output queue below
+                ToSendCount = numberOfBytes;
                 _OutputBuffer.Enqueue(0x82);
             } else { 
                 for (int i = 0; i < numberOfBytes; i++)
@@ -423,32 +423,34 @@ namespace RandM.RMLib
                     if (data[i] < 128)
                     {
                         ToSend.Add(data[i]);
+                        ToSendCount += 1;
                     }
                     else
                     {
                         // Handle UTF-8 encode
                         ToSend.Add((byte)((data[i] >> 6) | 192));
                         ToSend.Add((byte)((data[i] & 63) | 128));
+                        ToSendCount += 2;
                     }
                 }
                 _OutputBuffer.Enqueue(0x81);
             }
 
-            if (ToSend.Count <= 125)
+            if (ToSendCount <= 125)
             {
-                _OutputBuffer.Enqueue((byte)ToSend.Count);
+                _OutputBuffer.Enqueue((byte)ToSendCount);
             }
-            else if (ToSend.Count <= 65535)
+            else if (ToSendCount <= 65535)
             {
                 _OutputBuffer.Enqueue(126);
-                byte[] Bytes = BitConverter.GetBytes((short)ToSend.Count);
+                byte[] Bytes = BitConverter.GetBytes((short)ToSendCount);
                 _OutputBuffer.Enqueue(Bytes[1]);
                 _OutputBuffer.Enqueue(Bytes[0]);
             }
             else
             {
                 _OutputBuffer.Enqueue(127);
-                byte[] Bytes = BitConverter.GetBytes((long)ToSend.Count);
+                byte[] Bytes = BitConverter.GetBytes((long)ToSendCount);
                 _OutputBuffer.Enqueue(Bytes[7]);
                 _OutputBuffer.Enqueue(Bytes[6]);
                 _OutputBuffer.Enqueue(Bytes[5]);
@@ -459,9 +461,14 @@ namespace RandM.RMLib
                 _OutputBuffer.Enqueue(Bytes[0]);
             }
 
-            for (var i = 0; i < ToSend.Count; i++)
-            {
-                _OutputBuffer.Enqueue(ToSend[i]);
+            if (SubProtocol == "binary") {
+                for (int i = 0; i < numberOfBytes; i++) {
+                    _OutputBuffer.Enqueue(data[i]);
+                }
+            } else {
+                for (var i = 0; i < ToSendCount; i++) {
+                    _OutputBuffer.Enqueue(ToSend[i]);
+                }
             }
         }
 

@@ -210,8 +210,8 @@ namespace RandM.RMLib
         public bool CanRead(int milliseconds)
         {
             // Check if buffer is empty
-            if (_InputBuffer.Count == 0) ReceiveData(milliseconds);
-            return (_InputBuffer.Count > 0);
+            if (!_InputBuffer.Any()) ReceiveData(milliseconds);
+            return _InputBuffer.Any();
         }
 
         public void Close()
@@ -733,7 +733,7 @@ namespace RandM.RMLib
 
         public char? PeekChar()
         {
-            if (_InputBuffer.Count == 0)
+            if (!_InputBuffer.Any())
             {
                 return null;
             }
@@ -750,12 +750,12 @@ namespace RandM.RMLib
 
         public byte[] ReadBytes()
         {
-            return ReadBytes(_InputBuffer.Count);
+            return ReadBytes(int.MaxValue);
         }
 
         public byte[] ReadBytes(int bytesToRead)
         {
-            if (bytesToRead > _InputBuffer.Count) bytesToRead = _InputBuffer.Count;
+            bytesToRead = Math.Min(bytesToRead, _InputBuffer.Count);
 
             byte[] Result = new byte[bytesToRead];
             for (int i = 0; i < bytesToRead; i++)
