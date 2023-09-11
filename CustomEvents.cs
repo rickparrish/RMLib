@@ -94,11 +94,19 @@ namespace RandM.RMLib
     {
         public LogLevel Level { get; set; }
         public string Message { get; set; }
+        public string ExceptionDetails { get; set; }
 
-        public RMLogEventArgs(LogLevel level, string message)
+        public RMLogEventArgs(LogLevel level, string message) 
         {
             this.Level = level;
             this.Message = message;
+        }
+
+        public RMLogEventArgs(LogLevel level, string message, string exceptionDetails)
+        {
+            this.Level = level;
+            this.Message = message;
+            this.ExceptionDetails = exceptionDetails;
         }
 
         public void Raise(object sender, EventHandler<RMLogEventArgs> Handler)

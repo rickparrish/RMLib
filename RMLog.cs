@@ -85,7 +85,7 @@ namespace RandM.RMLib
                 var Trace = new StackTrace(ex, true);
                 var Frame = Trace.GetFrame(0);
                 var Method = Frame.GetMethod();
-                message = string.Format("Message: {0}\r\nFile: {1}:{2},{3}\r\nMethod: {4}::{5}\r\nException: {6}",
+                string exceptionDetails = string.Format("Message: {0}\r\nFile: {1}:{2},{3}\r\nMethod: {4}::{5}\r\nException: {6}",
                     message,
                     Frame.GetFileName(),
                     Frame.GetFileLineNumber(),
@@ -94,7 +94,7 @@ namespace RandM.RMLib
                     Method.Name,
                     ex.ToString());
 
-                new RMLogEventArgs(LogLevel.Debug, message).Raise(null, Handler);
+                new RMLogEventArgs(LogLevel.Debug, message, exceptionDetails).Raise(null, Handler);
             }
         }
 
@@ -123,7 +123,7 @@ namespace RandM.RMLib
                 var Trace = new StackTrace(ex, true);
                 var Frame = Trace.GetFrame(0);
                 var Method = Frame.GetMethod();
-                message = string.Format("Message: {0}\r\nFile: {1}:{2},{3}\r\nMethod: {4}::{5}\r\nException: {6}",
+                string exceptionDetails = string.Format("Message: {0}\r\nFile: {1}:{2},{3}\r\nMethod: {4}::{5}\r\nException: {6}",
                     message,
                     Frame.GetFileName(),
                     Frame.GetFileLineNumber(),
@@ -132,7 +132,7 @@ namespace RandM.RMLib
                     Method.Name,
                     (Level <= LogLevel.Debug) ? ex.ToString() : ex.Message);
 
-                new RMLogEventArgs(LogLevel.Error, message).Raise(null, Handler);
+                new RMLogEventArgs(LogLevel.Error, message, exceptionDetails).Raise(null, Handler);
             }
         }
 
