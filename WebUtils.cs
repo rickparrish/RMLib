@@ -64,7 +64,7 @@ namespace RandM.RMLib
             Smtp.DeliveryMethod = SmtpDeliveryMethod.Network;
             Smtp.EnableSsl = ssl;
             Smtp.Port = smtpPort;
-            Smtp.Timeout = 10000;
+            Smtp.Timeout = 30000;
             Smtp.Send(Msg);
         }
 
