@@ -512,7 +512,8 @@ namespace RandM.RMLib
                     {
                         if (_Certificate == null)
                         {
-                            throw new Exception("wss:// requires a certificate");
+                            RMLog.Error("wss:// requires a certificate");
+                            return false;
                         }
                         else
                         {
